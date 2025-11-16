@@ -14,8 +14,10 @@
     --text:#e9ecf5;
     --muted:#b5bdd6;
     --rail:#273058;
-    --rail-fill:#c94055;  /* barra de progreso */
-    --rail-ab:#ff5a5a99;
+    --rail-fill:#c94055;  /* barra de progreso general (rojo) */
+    /* 🔽 Nuevo: colores verdes para A/B y su interior */
+    --ab:#1d7a46;         /* mismo verde que botones Marca A/B */
+    --ab-rail:#1d7a4699;  /* interior entre A y B (verde translúcido) */
     --btn:#1a2144;
     --btn-h:#232c5b;
     --badge:#2b3a86;
@@ -55,10 +57,11 @@
   .tl-rail{position:absolute;left:2%;right:2%;top:50%;height:8px;transform:translateY(-50%);
            background:linear-gradient(180deg, #3a426b 0%, var(--rail) 100%);border-radius:999px;outline:1px solid var(--border)}
   .tl-fill{position:absolute;left:2%;top:50%;height:8px;transform:translateY(-50%);background:var(--rail-fill);border-radius:999px}
-  .tl-ab{position:absolute;top:50%;height:14px;transform:translateY(-50%);background:var(--rail-ab);border-radius:8px}
+  /* 🔽 Cambios: ahora el tramo A–B es verde y las marcas A/B también */
+  .tl-ab{position:absolute;top:50%;height:14px;transform:translateY(-50%);background:var(--ab-rail);border-radius:8px}
   .tl-knob{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);
            background:#ffd1d8;outline:1px solid #3a1e26;box-shadow:0 0 0 2px #0003}
-  .tl-mark{position:absolute;top:50%;width:2px;height:18px;transform:translate(-50%,-50%);background:#ff6b6b}
+  .tl-mark{position:absolute;top:50%;width:2px;height:18px;transform:translate(-50%,-50%);background:var(--ab)}
   .tl-hit{position:absolute;inset:0;cursor:pointer}
   /* Responsive */
   @media (max-width:860px){
@@ -83,8 +86,8 @@
       <button id="rateReset" class="btn-amber">Vel 1.00x</button>
       <button id="markA" class="btn-green">Marca A</button>
       <button id="markB" class="btn-green">Marca B</button>
-      <button id="clearAB" class="btn-dark">Desmarcar A‑B</button>
-      <button id="loopBtn" class="btn-red">Bucle A‑B: OFF</button>
+      <button id="clearAB" class="btn-dark">Desmarcar A-B</button>
+      <button id="loopBtn" class="btn-red">Bucle A-B: OFF</button>
     </div>
   </div>
 
@@ -113,7 +116,7 @@
         CursoPlayer © 2025 Francisco Javier Falcón Muñoz —
         <a href="mailto:falcon.fjf@gmail.com" rel="author noopener noreferrer">falcon.fjf@gmail.com</a>
         &nbsp;•&nbsp;
-        <span class="tc">Atajos: Espacio reproducir/pausar · J/L vel‑/vel+ · K vel normal · A/B marcas · F pantalla completa</span>
+        <span class="tc">Atajos: Espacio reproducir/pausar · J/L vel-/vel+ · K vel normal · A/B marcas · F pantalla completa</span>
       </div>
     </div>
   </div>
