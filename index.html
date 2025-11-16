@@ -3,125 +3,136 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CursoPlayer Web — by Fran Falcón (Rev 2)</title>
+<title>CursoPlayer Web — by Fran Falcón (Rev 3)</title>
+<meta name="theme-color" content="#131834">
 <style>
   :root{
-    --bg:#0f0f10; --panel:#191a1c; --panel-2:#222428; --text:#e8e8ea;
-    --muted:#a5a7ad; --accent:#79c7ff; --danger:#ff6b6b; --ok:#78e08f;
-    --warn:#ffd76b; --rail:#2d2f34; --rail-fill:#5b5f67; --rail-ab:#ff4757aa;
-    --btn:#2a2d33; --btn-h:#343840; --btn-t:#eaeaea;
+    --bg:#0d1021;         /* fondo general (azul oscuro) */
+    --panel:#131834;      /* barras panel */
+    --panel-2:#0f132b;
+    --border:#1f264a;
+    --text:#e9ecf5;
+    --muted:#b5bdd6;
+    --rail:#273058;
+    --rail-fill:#c94055;  /* barra de progreso */
+    --rail-ab:#ff5a5a99;
+    --btn:#1a2144;
+    --btn-h:#232c5b;
+    --badge:#2b3a86;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
             font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Noto Sans", "Helvetica Neue", Arial;
-            -webkit-user-select:none; user-select:none; /* anti-copia básica */}
-  .app{display:grid;grid-template-rows:auto 1fr auto;gap:.5rem;height:100%;padding:.5rem}
-  .topbar{display:grid;grid-auto-flow:column;grid-auto-columns:max-content;gap:.35rem;align-items:center;
-          background:var(--panel);border:1px solid #2a2d33;padding:.4rem .5rem;border-radius:12px;overflow:auto}
-  button{appearance:none;border:0;background:var(--btn);color:var(--btn-t);padding:.55rem .7rem;border-radius:10px;cursor:pointer;transition:.12s;white-space:nowrap}
+            -webkit-user-select:none; user-select:none;}
+  a{color:#9ec3ff;text-decoration:none}
+  a:hover{text-decoration:underline}
+  .app{display:grid;grid-template-rows:auto 1fr auto;gap:.6rem;height:100%;padding:.6rem}
+  .shell{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:.5rem}
+  .topbar{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
+  .brand{display:flex;gap:.5rem;align-items:center;margin-right:.25rem;font-weight:600}
+  .badge{font-size:.75rem;background:var(--badge);border:1px solid var(--border);color:#bcd3ff;padding:.15rem .45rem;border-radius:999px}
+  input#file{display:none}
+  button{appearance:none;border:1px solid var(--border);background:var(--btn);color:var(--text);
+         padding:.55rem .7rem;border-radius:10px;cursor:pointer;transition:.12s;white-space:nowrap}
   button:hover{background:var(--btn-h)}
-  button[disabled]{opacity:.6;cursor:not-allowed}
-  .ghost{background:transparent;border:1px solid #2a2d33}
-  .spacer{width:.35rem}
-  #file{display:none}
-  .video-wrap{position:relative;background:black;border-radius:14px;border:1px solid #2a2d33;overflow:hidden}
+  button.ghost{background:transparent}
+  .btn-blue{background:#1e2f97} .btn-blue:hover{background:#2638af}
+  .btn-green{background:#1d7a46} .btn-green:hover{background:#249a59}
+  .btn-amber{background:#754d10} .btn-amber:hover{background:#946321}
+  .btn-red{background:#79222b} .btn-red:hover{background:#962a36}
+  .btn-dark{background:#1d2249} .btn-dark:hover{background:#242c62}
+  .video-wrap{position:relative;background:black;border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:40vh}
   video{width:100%;height:100%;display:block;background:black}
   .mirror{transform:scaleX(-1)}
   .overlay{position:absolute;inset:0;pointer-events:none}
-  .bottom{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.6rem;background:var(--panel);
-          border:1px solid #2a2d33;padding:.5rem;border-radius:12px}
+  /* Bottom area */
+  .bottom{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.6rem}
+  .labels{display:flex;gap:.75rem;color:var(--muted)}
   .tc{color:var(--muted);font-variant-numeric:tabular-nums}
-  /* timeline */
-  .tl{position:relative;height:28px;user-select:none}
-  .tl-rail{position:absolute;left:0;right:0;top:50%;height:10px;transform:translateY(-50%);background:var(--rail);border-radius:999px;outline:1px solid #2a2d33}
-  .tl-fill{position:absolute;left:0;top:50%;height:10px;transform:translateY(-50%);background:var(--rail-fill);border-radius:999px}
+  .credit{grid-column:1/-1;color:#aeb6d3;font-size:.82rem;opacity:.9;text-align:center}
+  /* Timeline */
+  .tl{position:relative;height:36px;user-select:none}
+  .tl-rail{position:absolute;left:2%;right:2%;top:50%;height:8px;transform:translateY(-50%);
+           background:linear-gradient(180deg, #3a426b 0%, var(--rail) 100%);border-radius:999px;outline:1px solid var(--border)}
+  .tl-fill{position:absolute;left:2%;top:50%;height:8px;transform:translateY(-50%);background:var(--rail-fill);border-radius:999px}
   .tl-ab{position:absolute;top:50%;height:14px;transform:translateY(-50%);background:var(--rail-ab);border-radius:8px}
-  .tl-knob{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);background:#ddd;outline:1px solid #222}
+  .tl-knob{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);
+           background:#ffd1d8;outline:1px solid #3a1e26;box-shadow:0 0 0 2px #0003}
   .tl-mark{position:absolute;top:50%;width:2px;height:18px;transform:translate(-50%,-50%);background:#ff6b6b}
   .tl-hit{position:absolute;inset:0;cursor:pointer}
-  .labels{display:flex;gap:.75rem;color:var(--muted)}
-  .credit{grid-column:1/-1;color:#a5a7ad;font-size:.78rem;opacity:.8;margin-top:.25rem}
-  .credit a{color:#a5c8ff;text-decoration:none}
-  .credit a:hover{text-decoration:underline}
-  .modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:1rem}
-  .modal.active{display:flex}
-  .card{background:var(--panel-2);border:1px solid #2a2d33;max-width:min(720px,90vw);border-radius:14px;padding:1rem}
-  .card h3{margin:.2rem 0 .6rem}
-  .row{display:flex;gap:.4rem;flex-wrap:wrap}
-  .hint{color:var(--muted);font-size:.9rem}
-  .tag{padding:.1rem .45rem;border:1px solid #3a3f47;border-radius:999px;color:#bfc3ca}
-  @media (max-width:720px){
-    .topbar{grid-auto-flow:row;grid-template-columns:repeat(3, minmax(0,1fr))}
-    .topbar button{width:100%}
-    .bottom{grid-template-columns:auto 1fr;grid-auto-rows:auto}
+  /* Responsive */
+  @media (max-width:860px){
+    .bottom{grid-template-columns:1fr;gap:.35rem}
+    .credit{font-size:.78rem}
   }
 </style>
 </head>
 <body oncontextmenu="return false">
 <div class="app" id="app">
-  <div class="topbar" role="toolbar" aria-label="Controles de CursoPlayer">
-    <input id="file" type="file" accept="video/*" />
-    <button id="openBtn">📂 Abrir</button>
-    <button id="playBtn">⏸ Pausa</button>
-    <button id="mirrorBtn">Espejo: OFF</button>
-    <button id="infoBtn" class="ghost">ℹ Info</button>
-    <button id="fsBtn" class="ghost">Pantalla completa</button>
-    <div class="spacer"></div>
-    <button id="rateDown">Vel-</button>
-    <button id="rateUp">Vel+</button>
-    <button id="rateReset">Vel 1.00x</button>
-    <div class="spacer"></div>
-    <button id="markA">Marca A</button>
-    <button id="markB">Marca B</button>
-    <button id="clearAB" class="ghost">Desmarcar A‑B</button>
-    <!-- Botón Recortar A‑B eliminado en Rev 2 -->
-    <button id="loopBtn">Bucle A‑B: OFF</button>
+  <div class="shell">
+    <div class="topbar" role="toolbar" aria-label="Controles de CursoPlayer">
+      <div class="brand">CursoPlayer Web <span class="badge">PWA</span></div>
+      <input id="file" type="file" accept="video/*" />
+      <button id="openBtn" class="btn-dark">📂 Abrir</button>
+      <button id="playBtn" class="btn-blue">▶ Reproducir</button>
+      <button id="mirrorBtn" class="btn-dark">Espejo: OFF</button>
+      <button id="infoBtn" class="ghost">ℹ Info</button>
+      <button id="fsBtn" class="ghost">Pantalla completa</button>
+      <button id="rateDown" class="btn-amber">Vel-</button>
+      <button id="rateUp" class="btn-amber">Vel+</button>
+      <button id="rateReset" class="btn-amber">Vel 1.00x</button>
+      <button id="markA" class="btn-green">Marca A</button>
+      <button id="markB" class="btn-green">Marca B</button>
+      <button id="clearAB" class="ghost">Desmarcar A‑B</button>
+      <button id="loopBtn" class="btn-red">Bucle A‑B: OFF</button>
+    </div>
   </div>
 
-  <div class="video-wrap" id="vw">
+  <div class="video-wrap">
     <video id="vid" preload="metadata" playsinline></video>
     <div class="overlay"></div>
   </div>
 
-  <div class="bottom">
-    <div class="labels">
-      <span class="tc" id="tcA">A: --:--:--.---</span>
-      <span class="tc" id="tcB">B: --:--:--.---</span>
-    </div>
-    <div class="tl" id="timeline" aria-label="Línea de tiempo">
-      <div class="tl-rail"></div>
-      <div class="tl-fill"></div>
-      <div class="tl-ab" style="display:none"></div>
-      <div class="tl-mark" id="markAline" style="display:none"></div>
-      <div class="tl-mark" id="markBline" style="display:none"></div>
-      <div class="tl-knob" style="left:0%"></div>
-      <div class="tl-hit" title="Arrastra para navegar"></div>
-    </div>
-    <div class="tc"><span id="tcNow">00:00:00.000</span> / <span id="tcDur">00:00:00.000</span></div>
-    <div class="credit">
-      CursoPlayer © 2025 Francisco Javier Falcón Muñoz —
-      <a href="mailto:falcon.fjf@gmail.com" rel="author noopener noreferrer">falcon.fjf@gmail.com</a>
+  <div class="shell">
+    <div class="bottom">
+      <div class="labels">
+        <span class="tc" id="tcA">A: --:--:--.---</span>
+        <span class="tc" id="tcB">B: --:--:--.---</span>
+      </div>
+      <div class="tl" id="timeline" aria-label="Línea de tiempo">
+        <div class="tl-rail"></div>
+        <div class="tl-fill"></div>
+        <div class="tl-ab" style="display:none"></div>
+        <div class="tl-mark" id="markAline" style="display:none"></div>
+        <div class="tl-mark" id="markBline" style="display:none"></div>
+        <div class="tl-knob" style="left:0%"></div>
+        <div class="tl-hit" title="Arrastra para navegar"></div>
+      </div>
+      <div class="tc"><span id="tcNow">00:00:00.000</span> / <span id="tcDur">00:00:00.000</span></div>
+      <div class="credit">
+        CursoPlayer © 2025 Francisco Javier Falcón Muñoz —
+        <a href="mailto:falcon.fjf@gmail.com" rel="author noopener noreferrer">falcon.fjf@gmail.com</a>
+        &nbsp;•&nbsp;
+        <span class="tc">Atajos: Espacio reproducir/pausar · J/L vel‑/vel+ · K vel normal · A/B marcas · F pantalla completa</span>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Modal Info -->
-<div class="modal" id="infoModal" role="dialog" aria-modal="true">
-  <div class="card">
-    <h3>Información del clip</h3>
-    <div id="infoText" class="hint"></div>
-    <div class="row" style="margin-top:.8rem">
+<div class="shell" id="infoModal" style="display:none; position:fixed; inset:0; background:#0007;align-items:center;justify-content:center;">
+  <div style="background:var(--panel);border:1px solid var(--border);max-width:min(720px,90vw);border-radius:14px;padding:1rem">
+    <h3 style="margin:.2rem 0 1rem">Información del clip</h3>
+    <div id="infoText" style="color:var(--muted)"></div>
+    <div style="margin-top:.9rem;display:flex;gap:.5rem;justify-content:flex-end">
       <button id="closeInfo" class="ghost">Cerrar</button>
-    </div>
-    <div class="hint" style="margin-top:.8rem">
-      <strong>Atajos:</strong> Espacio reproducir/pausar · J/L vel‑/vel+ · K vel normal · A/B marcas · F pantalla completa
     </div>
   </div>
 </div>
 
 <script type="module">
-  // === Utilidades básicas ===
-  const $ = sel => document.querySelector(sel);
+  // === Utilidades ===
+  const $ = (s)=>document.querySelector(s);
   const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
   const fmtTC = (sec)=>{
     if(!Number.isFinite(sec)||sec<0) sec=0;
@@ -129,7 +140,7 @@
     const s  = Math.floor(sec)%60;
     const m  = Math.floor(sec/60)%60;
     const h  = Math.floor(sec/3600);
-    const z = n=>String(n).padStart(2,'0');
+    const z = (n)=>String(n).padStart(2,'0');
     return `${z(h)}:${z(m)}:${z(s)}.${String(ms).padStart(3,'0')}`;
   };
 
@@ -138,10 +149,10 @@
   let fileHandle = null;
   let pointA = null, pointB = null;
   let loopAB = false;
-  let dragging = null;             // 'seek' | 'A' | 'B'
+  let dragging = null; // 'seek' | 'A' | 'B'
   let userRate = 1.0;
 
-  // === Controles ===
+  // === Elementos ===
   const btnOpen = $("#openBtn");
   const fileInp = $("#file");
   const btnPlay = $("#playBtn");
@@ -155,6 +166,7 @@
   const btnB = $("#markB");
   const btnClear = $("#clearAB");
   const btnLoop = $("#loopBtn");
+
   const tl = $("#timeline");
   const tlFill = tl.querySelector(".tl-fill");
   const tlKnob = tl.querySelector(".tl-knob");
@@ -163,20 +175,28 @@
   const markAline = $("#markAline");
   const markBline = $("#markBline");
   const tcA = $("#tcA"), tcB = $("#tcB"), tcNow = $("#tcNow"), tcDur = $("#tcDur");
-  const vw = $("#vw");
 
-  // === Apertura de archivo (botón y drag&drop) ===
+  // === Anti-copia básica ===
+  document.addEventListener("keydown",(e)=>{
+    if((e.ctrlKey||e.metaKey) && ["s","u","p","c","a"].includes(e.key.toLowerCase())) { e.preventDefault(); }
+    if((e.ctrlKey||e.metaKey) && e.shiftKey && ["i","j","c"].includes(e.key.toLowerCase())) { e.preventDefault(); }
+    if(e.key === "F12"){ e.preventDefault(); }
+  });
+
+  // === Archivo (botón + drag&drop) ===
   btnOpen.addEventListener("click",()=>fileInp.click());
-  fileInp.addEventListener("change",e=>{
+  fileInp.addEventListener("change",(e)=>{
     const f = e.target.files?.[0];
     if(f) loadFile(f);
   });
-  ["dragenter","dragover"].forEach(ev=>vw.addEventListener(ev,e=>{e.preventDefault();e.dataTransfer.dropEffect="copy";vw.style.outline="2px dashed #4c9eff"}));
-  ["dragleave","drop"].forEach(ev=>vw.addEventListener(ev, e=>{e.preventDefault();vw.style.outline="none"}));
-  vw.addEventListener("drop", e=>{
+  const dropArea = document.querySelector(".video-wrap");
+  ["dragenter","dragover"].forEach(ev=>dropArea.addEventListener(ev,e=>{e.preventDefault();dropArea.style.outline="2px dashed #6aa2ff"}));
+  ["dragleave","drop"].forEach(ev=>dropArea.addEventListener(ev,e=>{e.preventDefault();dropArea.style.outline="none"}));
+  dropArea.addEventListener("drop",(e)=>{
     const f = [...e.dataTransfer.files].find(f=>f.type.startsWith("video/")) || e.dataTransfer.files[0];
     if(f) loadFile(f);
   });
+
   async function loadFile(file){
     fileHandle = file;
     const url = URL.createObjectURL(file);
@@ -187,25 +207,25 @@
     userRate = 1.0; applyRate();
   }
 
-  // === Reproducir / Pausar ===
+  // === Play/Pausa ===
   btnPlay.addEventListener("click",()=>{
-    if(vid.paused){vid.play();btnPlay.textContent="⏸ Pausa";}
-    else {vid.pause();btnPlay.textContent="▶ Reproducir";}
+    if(vid.paused){ vid.play(); btnPlay.textContent="⏸ Pausa"; }
+    else { vid.pause(); btnPlay.textContent="▶ Reproducir"; }
   });
 
   // === Info ===
-  const modal = $("#infoModal"), infoText=$("#infoText");
+  const infoModal = $("#infoModal");
+  const infoText = $("#infoText");
   btnInfo.addEventListener("click",()=>{
     const dur = Number.isFinite(vid.duration) ? fmtTC(vid.duration) : "--:--:--.---";
     const name = fileHandle?.name || "(sin archivo)";
-    infoText.innerHTML = `
-      <div><strong>Fichero:</strong> ${name}</div>
-      <div><strong>Duración:</strong> ${dur}</div>
-      <div><strong>Reproductor:</strong> HTML5 Video</div>`;
-    modal.classList.add("active");
+    infoText.innerHTML = `<div><strong>Fichero:</strong> ${name}</div>
+                          <div><strong>Duración:</strong> ${dur}</div>
+                          <div><strong>Reproductor:</strong> HTML5 Video</div>`;
+    infoModal.style.display="flex";
   });
-  document.getElementById("closeInfo").addEventListener("click",()=>modal.classList.remove("active"));
-  modal.addEventListener("click",e=>{ if(e.target===modal) modal.classList.remove("active") });
+  $("#closeInfo").addEventListener("click",()=> infoModal.style.display="none");
+  infoModal.addEventListener("click",(e)=>{ if(e.target===infoModal) infoModal.style.display="none"; });
 
   // === Pantalla completa ===
   btnFS.addEventListener("click",()=>toggleFS());
@@ -225,12 +245,12 @@
   });
 
   // === Velocidad ===
-  function applyRate(){ vid.playbackRate = userRate; btnRateReset.textContent = `Vel ${userRate.toFixed(2)}x`; }
-  btnRateDn.addEventListener("click",()=>{ userRate = clamp((userRate-0.1),0.10,3.0); applyRate() });
-  btnRateUp.addEventListener("click",()=>{ userRate = clamp((userRate+0.1),0.10,3.0); applyRate() });
-  btnRateReset.addEventListener("click",()=>{ userRate = 1.0; applyRate() });
+  function applyRate(){ vid.playbackRate = userRate; $("#rateReset").textContent = `Vel ${userRate.toFixed(2)}x`; }
+  btnRateDn.addEventListener("click",()=>{ userRate = clamp(userRate-0.1, 0.10, 3.0); applyRate(); });
+  btnRateUp.addEventListener("click",()=>{ userRate = clamp(userRate+0.1, 0.10, 3.0); applyRate(); });
+  btnRateReset.addEventListener("click",()=>{ userRate = 1.0; applyRate(); });
 
-  // === Marcas A/B ===
+  // === Marcas A/B y bucle ===
   function resetAB(){
     pointA = pointB = null; loopAB=false;
     btnLoop.textContent = "Bucle A‑B: OFF";
@@ -242,7 +262,7 @@
   }
   btnClear.addEventListener("click", resetAB);
   btnLoop.addEventListener("click",()=>{
-    loopAB=!loopAB;
+    loopAB = !loopAB;
     btnLoop.textContent = "Bucle A‑B: " + (loopAB? "ON":"OFF");
   });
   btnA.addEventListener("click",()=>{
@@ -257,38 +277,39 @@
   });
   const abValid = ()=> pointA!=null && pointB!=null && pointB>pointA;
 
-  // === Timeline ===
-  function ratioFromX(x){
-    const rect = tl.getBoundingClientRect();
-    return clamp((x-rect.left)/rect.width,0,1);
-  }
+  // === Timeline: pintar ===
   function drawTL(){
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
     const rNow = dur? (vid.currentTime/dur): 0;
-    tlKnob.style.left = `${rNow*100}%`;
-    tlFill.style.width = `${rNow*100}%`;
+    const railLeft = tl.querySelector(".tl-rail").getBoundingClientRect().left;
+    const railRight = tl.querySelector(".tl-rail").getBoundingClientRect().right;
+    const railWidth = railRight - railLeft;
+    tlKnob.style.left = `${2 + rNow*(100-4)}%`;  /* 2% margen izq-dcha */
+    tlFill.style.left = "2%";
+    tlFill.style.width = `${rNow*(100-4)}%`;
     tcNow.textContent = fmtTC(vid.currentTime||0);
     tcDur.textContent = fmtTC(dur||0);
-    // A/B visuals
-    if(pointA!=null){
-      const rA = clamp(pointA/dur,0,1);
-      markAline.style.left = `${rA*100}%`; markAline.style.display="block";
-    } else markAline.style.display="none";
-    if(pointB!=null){
-      const rB = clamp(pointB/dur,0,1);
-      markBline.style.left = `${rB*100}%`; markBline.style.display="block";
-    } else markBline.style.display="none";
+
+    // Marcas
+    const posPct = (t)=> (2 + clamp(t/dur,0,1)*(100-4));
+    if(pointA!=null){ markAline.style.left = posPct(pointA)+"%"; markAline.style.display="block"; }
+    else markAline.style.display="none";
+    if(pointB!=null){ markBline.style.left = posPct(pointB)+"%"; markBline.style.display="block"; }
+    else markBline.style.display="none";
+
     if(abValid()){
-      const rA = clamp(pointA/dur,0,1), rB = clamp(pointB/dur,0,1);
-      const left = Math.min(rA,rB)*100, right = Math.max(rA,rB)*100;
-      tlAB.style.display="block"; tlAB.style.left = left+"%"; tlAB.style.right = (100-right)+"%";
+      const left = posPct(Math.min(pointA,pointB));
+      const right = posPct(Math.max(pointA,pointB));
+      tlAB.style.display="block";
+      tlAB.style.left = left+"%";
+      tlAB.style.right = (100-right)+"%";
     } else tlAB.style.display="none";
   }
   vid.addEventListener("timeupdate", drawTL);
   vid.addEventListener("durationchange", drawTL);
   vid.addEventListener("loadedmetadata", drawTL);
 
-  // === Bucle A‑B y fin de vídeo ===
+  // === Lógica de bucle y final ===
   vid.addEventListener("timeupdate", ()=>{
     if(loopAB && abValid()){
       if(vid.currentTime < pointA) vid.currentTime = pointA;
@@ -300,56 +321,48 @@
     else { vid.currentTime = 0; vid.play(); }
   });
 
-  // === Interacción timeline: click/drag seek + arrastre marcas ===
+  // === Interacción timeline: click/drag y arrastre de marcas ===
   function whichHit(e){
     const rect = tl.getBoundingClientRect();
+    const railRect = tl.querySelector(".tl-rail").getBoundingClientRect();
     const x = e.clientX;
-    const near = (px)=>Math.abs(px-x)<=8;
+    const near = (px)=>Math.abs(px-x)<=10;
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
     const rA = pointA!=null? (pointA/dur): null;
     const rB = pointB!=null? (pointB/dur): null;
-    const xA = rA!=null? (rect.left + rect.width*rA): null;
-    const xB = rB!=null? (rect.left + rect.width*rB): null;
+    const xA = rA!=null? (railRect.left + (railRect.width)*rA): null;
+    const xB = rB!=null? (railRect.left + (railRect.width)*rB): null;
     if(xA!=null && near(xA)) return "A";
     if(xB!=null && near(xB)) return "B";
     return "seek";
   }
   function setTimeFromClientX(clientX){
-    const rect = tl.getBoundingClientRect();
-    const r = clamp((clientX-rect.left)/rect.width,0,1);
+    const railRect = tl.querySelector(".tl-rail").getBoundingClientRect();
+    const r = clamp((clientX-railRect.left)/railRect.width,0,1);
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
     let t = r*dur;
-    if(loopAB && abValid()){
-      t = clamp(t, pointA, pointB);
-    }
-    vid.currentTime = t;
-    drawTL();
+    if(loopAB && abValid()) t = clamp(t, pointA, pointB);
+    vid.currentTime = t; drawTL();
   }
-  tlHit.addEventListener("mousedown", (e)=>{
+  tlHit.addEventListener("mousedown",(e)=>{
     dragging = whichHit(e);
     if(dragging==="seek") setTimeFromClientX(e.clientX);
     e.preventDefault();
   });
   window.addEventListener("mousemove",(e)=>{
     if(!dragging) return;
+    const railRect = tl.querySelector(".tl-rail").getBoundingClientRect();
+    const r = clamp((e.clientX-railRect.left)/railRect.width,0,1);
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
-    const rect = tl.getBoundingClientRect();
-    const r = clamp((e.clientX-rect.left)/rect.width,0,1);
     const t = r*dur;
-    if(dragging==="A"){
-      pointA = clamp(t, 0, dur);
-      tcA.textContent = "A: " + fmtTC(pointA);
-    }else if(dragging==="B"){
-      pointB = clamp(t, 0, dur);
-      tcB.textContent = "B: " + fmtTC(pointB);
-    }else{
-      setTimeFromClientX(e.clientX);
-    }
+    if(dragging==="A"){ pointA = clamp(t,0,dur); tcA.textContent="A: "+fmtTC(pointA); }
+    else if(dragging==="B"){ pointB = clamp(t,0,dur); tcB.textContent="B: "+fmtTC(pointB); }
+    else setTimeFromClientX(e.clientX);
     drawTL();
   });
-  window.addEventListener("mouseup", ()=> dragging=null);
+  window.addEventListener("mouseup",()=> dragging=null);
 
-  // === Scroll rueda ±2s ===
+  // === Rueda: ±2s ===
   tl.addEventListener("wheel",(e)=>{
     e.preventDefault();
     const delta = e.deltaY<0 ? 2 : -2;
@@ -359,13 +372,11 @@
     vid.currentTime = t; drawTL();
   }, {passive:false});
 
-  // === Atajos teclado solicitados ===
+  // === Atajos de teclado visibles en el pie ===
   window.addEventListener("keydown",(e)=>{
-    // Anti-copia: bloquear combinaciones comunes (no infalible)
     if((e.ctrlKey||e.metaKey) && ["s","u","p","c","a"].includes(e.key.toLowerCase())) { e.preventDefault(); return; }
     if((e.ctrlKey||e.metaKey) && e.shiftKey && ["i","j","c"].includes(e.key.toLowerCase())) { e.preventDefault(); return; }
     if(e.key === "F12"){ e.preventDefault(); return; }
-
     if(e.target.closest("input,textarea")) return;
 
     const k = e.key.toLowerCase();
@@ -376,13 +387,11 @@
     else if(k==="a"){ e.preventDefault(); btnA.click(); }
     else if(k==="b"){ e.preventDefault(); btnB.click(); }
     else if(k==="f"){ e.preventDefault(); btnFS.click(); }
-    // Conservamos flechas por comodidad
     else if(k==="arrowleft"){ seekPercent(-0.10); }
     else if(k==="arrowright"){ seekPercent(+0.10); }
     else if(k==="arrowup"){ seekSeconds(+10); }
     else if(k==="arrowdown"){ seekSeconds(-10); }
   });
-
   function seekSeconds(ds){
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
     let t = clamp(vid.currentTime + ds, 0, dur);
@@ -391,13 +400,11 @@
   }
   function seekPercent(df){
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
-    const step = dur * df;
-    seekSeconds(step);
+    seekSeconds(dur * df);
   }
 
-  // === Inicial ===
-  vid.controls = false; // controles propios
-  document.addEventListener("touchend", ()=>{ if(vid.paused && vid.src) vid.play().catch(()=>{}) }, {once:true});
+  // Inicial
+  vid.controls = false;
 </script>
 </body>
 </html>
