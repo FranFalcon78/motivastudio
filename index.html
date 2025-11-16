@@ -7,25 +7,24 @@
 <meta name="theme-color" content="#131834">
 <style>
   :root{
-    --bg:#0d1021;         /* fondo general (azul oscuro) */
-    --panel:#131834;      /* barras panel */
+    --bg:#0d1021;
+    --panel:#131834;
     --panel-2:#0f132b;
     --border:#1f264a;
     --text:#e9ecf5;
     --muted:#b5bdd6;
     --rail:#273058;
-    --rail-fill:#c94055;  /* barra de progreso general (rojo) */
-    /* 🔽 Nuevo: colores verdes para A/B y su interior */
-    --ab:#1d7a46;         /* mismo verde que botones Marca A/B */
-    --ab-rail:#1d7a4699;  /* interior entre A y B (verde translúcido) */
+    --rail-fill:#c94055;
+    --ab:#1d7a46;
+    --ab-rail:#1d7a4699;
     --btn:#1a2144;
     --btn-h:#232c5b;
     --badge:#2b3a86;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
-            font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Noto Sans", "Helvetica Neue", Arial;
-            -webkit-user-select:none; user-select:none;}
+    font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Noto Sans", "Helvetica Neue", Arial;
+    -webkit-user-select:none; user-select:none;}
   a{color:#9ec3ff;text-decoration:none}
   a:hover{text-decoration:underline}
   .app{display:grid;grid-template-rows:auto 1fr auto;gap:.6rem;height:100%;padding:.6rem}
@@ -35,7 +34,7 @@
   .badge{font-size:.75rem;background:var(--badge);border:1px solid var(--border);color:#bcd3ff;padding:.15rem .45rem;border-radius:999px}
   input#file{display:none}
   button{appearance:none;border:1px solid var(--border);background:var(--btn);color:var(--text);
-         padding:.55rem .7rem;border-radius:10px;cursor:pointer;transition:.12s;white-space:nowrap}
+    padding:.55rem .7rem;border-radius:10px;cursor:pointer;transition:.12s;white-space:nowrap}
   button:hover{background:var(--btn-h)}
   button.ghost{background:transparent}
   .btn-blue{background:#1e2f97} .btn-blue:hover{background:#2638af}
@@ -47,23 +46,19 @@
   video{width:100%;height:100%;display:block;background:black}
   .mirror{transform:scaleX(-1)}
   .overlay{position:absolute;inset:0;pointer-events:none}
-  /* Bottom area */
   .bottom{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.6rem}
   .labels{display:flex;gap:.75rem;color:var(--muted)}
   .tc{color:var(--muted);font-variant-numeric:tabular-nums}
   .credit{grid-column:1/-1;color:#aeb6d3;font-size:.82rem;opacity:.9;text-align:center}
-  /* Timeline */
   .tl{position:relative;height:36px;user-select:none}
   .tl-rail{position:absolute;left:2%;right:2%;top:50%;height:8px;transform:translateY(-50%);
-           background:linear-gradient(180deg, #3a426b 0%, var(--rail) 100%);border-radius:999px;outline:1px solid var(--border)}
-  .tl-fill{position:absolute;left:2%;top:50%;height:8px;transform:translateY(-50%);background:var(--rail-fill);border-radius:999px}
-  /* 🔽 Cambios: ahora el tramo A–B es verde y las marcas A/B también */
-  .tl-ab{position:absolute;top:50%;height:14px;transform:translateY(-50%);background:var(--ab-rail);border-radius:8px}
+    background:linear-gradient(180deg, #3a426b 0%, var(--rail) 100%);border-radius:999px;outline:1px solid var(--border)}
+  .tl-fill{position:absolute;left:2%;top:50%;height:8px;transform:translateY(-50%);background:var(--rail-fill);border-radius:999px;display:none;}
+  .tl-ab{position:absolute;top:50%;height:14px;transform:translateY(-50%);background:var(--ab-rail);border-radius:8px;display:none;}
   .tl-knob{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);
-           background:#ffd1d8;outline:1px solid #3a1e26;box-shadow:0 0 0 2px #0003}
-  .tl-mark{position:absolute;top:50%;width:2px;height:18px;transform:translate(-50%,-50%);background:var(--ab)}
+    background:#ffd1d8;outline:1px solid #3a1e26;box-shadow:0 0 0 2px #0003;display:none;}
+  .tl-mark{position:absolute;top:50%;width:2px;height:18px;transform:translate(-50%,-50%);background:var(--ab);display:none;}
   .tl-hit{position:absolute;inset:0;cursor:pointer}
-  /* Responsive */
   @media (max-width:860px){
     .bottom{grid-template-columns:1fr;gap:.35rem}
     .credit{font-size:.78rem}
@@ -90,12 +85,10 @@
       <button id="loopBtn" class="btn-red">Bucle A-B: OFF</button>
     </div>
   </div>
-
   <div class="video-wrap">
     <video id="vid" preload="metadata" playsinline></video>
     <div class="overlay"></div>
   </div>
-
   <div class="shell">
     <div class="bottom">
       <div class="labels">
@@ -104,11 +97,11 @@
       </div>
       <div class="tl" id="timeline" aria-label="Línea de tiempo">
         <div class="tl-rail"></div>
-        <div class="tl-fill"></div>
-        <div class="tl-ab" style="display:none"></div>
-        <div class="tl-mark" id="markAline" style="display:none"></div>
-        <div class="tl-mark" id="markBline" style="display:none"></div>
-        <div class="tl-knob" style="left:0%"></div>
+        <div class="tl-fill" id="tlFill"></div>
+        <div class="tl-ab" id="tlAB"></div>
+        <div class="tl-mark" id="markAline"></div>
+        <div class="tl-mark" id="markBline"></div>
+        <div class="tl-knob" id="tlKnob" style="left:0%"></div>
         <div class="tl-hit" title="Arrastra para navegar"></div>
       </div>
       <div class="tc"><span id="tcNow">00:00:00.000</span> / <span id="tcDur">00:00:00.000</span></div>
@@ -121,7 +114,6 @@
     </div>
   </div>
 </div>
-
 <!-- Modal Info -->
 <div class="shell" id="infoModal" style="display:none; position:fixed; inset:0; background:#0007;align-items:center;justify-content:center;">
   <div style="background:var(--panel);border:1px solid var(--border);max-width:min(720px,90vw);border-radius:14px;padding:1rem">
@@ -132,9 +124,85 @@
     </div>
   </div>
 </div>
-
 <script type="module">
-// El resto del código permanece igual...
+// Elementos
+const fileInput = document.getElementById('file');
+const openBtn = document.getElementById('openBtn');
+const video = document.getElementById('vid');
+const tlKnob = document.getElementById('tlKnob');
+const tlFill = document.getElementById('tlFill');
+const timeline = document.getElementById('timeline');
+const tcNow = document.getElementById('tcNow');
+const tcDur = document.getElementById('tcDur');
+const playBtn = document.getElementById('playBtn');
+
+// Oculta la progresión hasta que el video esté listo
+function hideTimelineElems() {
+  tlKnob.style.display = "none";
+  tlFill.style.display = "none";
+  document.getElementById('tlAB').style.display = "none";
+  document.getElementById('markAline').style.display = "none";
+  document.getElementById('markBline').style.display = "none";
+}
+function showTimelineElems() {
+  tlKnob.style.display = "";
+  tlFill.style.display = "";
+  // Puedes manejar la lógica de mostrar el resto según implementación de marcas
+}
+
+// Inicialmente ocultar timeline elementos
+hideTimelineElems();
+
+// Abrir archivo de video
+openBtn.addEventListener('click', () => fileInput.click());
+
+// Cuando se selecciona video
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) {
+    const file = fileInput.files[0];
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.load();
+    // Deja play manual para que el botón funcione
+    tcDur.textContent = "Cargando...";
+  }
+});
+
+// Cuando el video está listo
+video.addEventListener('loadedmetadata', () => {
+  showTimelineElems();
+  tcDur.textContent = msf(video.duration * 1000);
+  tcNow.textContent = msf(0);
+  updateTimeline();
+});
+
+// Actualizar la barra de progreso y el knob al reproducir
+video.addEventListener('timeupdate', updateTimeline);
+
+function updateTimeline() {
+  if (video.duration > 0) {
+    const pct = (video.currentTime / video.duration) * 96 + 2; // asumiendo rail left/right 2%
+    tlKnob.style.left = `${pct}%`;
+    tlFill.style.width = `${pct-2}%`;
+    tcNow.textContent = msf(video.currentTime * 1000);
+  }
+}
+
+// Convertir segundos MS a HH:MM:SS.mmm
+function msf(ms) {
+  let s = Math.floor(ms/1000), z=(ms%1000);
+  let h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}.${z.toString().padStart(3,"0")}`;
+}
+
+// Botón de reproducción
+playBtn.addEventListener('click', () => {
+  if(video.src) {
+    if(video.paused) video.play();
+    else video.pause();
+  }
+});
+
 </script>
 </body>
 </html>
