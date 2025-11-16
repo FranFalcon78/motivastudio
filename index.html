@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!-- saved from url=(0038)file:///home/fran/Descargas/index.html -->
-<html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CursoPlayer Web — by Fran Falcón</title>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CursoPlayer Web — by Fran Falcón (Rev 2)</title>
 <style>
   :root{
     --bg:#0f0f10; --panel:#191a1c; --panel-2:#222428; --text:#e8e8ea;
@@ -12,21 +12,24 @@
     --btn:#2a2d33; --btn-h:#343840; --btn-t:#eaeaea;
   }
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Noto Sans", "Helvetica Neue", Arial}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+            font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Noto Sans", "Helvetica Neue", Arial;
+            -webkit-user-select:none; user-select:none; /* anti-copia básica */}
   .app{display:grid;grid-template-rows:auto 1fr auto;gap:.5rem;height:100%;padding:.5rem}
-  .topbar{display:grid;grid-auto-flow:column;grid-auto-columns:max-content;gap:.35rem;align-items:center;background:var(--panel);border:1px solid #2a2d33;padding:.4rem .5rem;border-radius:12px;overflow:auto}
+  .topbar{display:grid;grid-auto-flow:column;grid-auto-columns:max-content;gap:.35rem;align-items:center;
+          background:var(--panel);border:1px solid #2a2d33;padding:.4rem .5rem;border-radius:12px;overflow:auto}
   button{appearance:none;border:0;background:var(--btn);color:var(--btn-t);padding:.55rem .7rem;border-radius:10px;cursor:pointer;transition:.12s;white-space:nowrap}
   button:hover{background:var(--btn-h)}
   button[disabled]{opacity:.6;cursor:not-allowed}
   .ghost{background:transparent;border:1px solid #2a2d33}
-  .grow{min-width:0}
   .spacer{width:.35rem}
   #file{display:none}
   .video-wrap{position:relative;background:black;border-radius:14px;border:1px solid #2a2d33;overflow:hidden}
   video{width:100%;height:100%;display:block;background:black}
   .mirror{transform:scaleX(-1)}
   .overlay{position:absolute;inset:0;pointer-events:none}
-  .bottom{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.6rem;background:var(--panel);border:1px solid #2a2d33;padding:.5rem;border-radius:12px}
+  .bottom{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.6rem;background:var(--panel);
+          border:1px solid #2a2d33;padding:.5rem;border-radius:12px}
   .tc{color:var(--muted);font-variant-numeric:tabular-nums}
   /* timeline */
   .tl{position:relative;height:28px;user-select:none}
@@ -37,6 +40,9 @@
   .tl-mark{position:absolute;top:50%;width:2px;height:18px;transform:translate(-50%,-50%);background:#ff6b6b}
   .tl-hit{position:absolute;inset:0;cursor:pointer}
   .labels{display:flex;gap:.75rem;color:var(--muted)}
+  .credit{grid-column:1/-1;color:#a5a7ad;font-size:.78rem;opacity:.8;margin-top:.25rem}
+  .credit a{color:#a5c8ff;text-decoration:none}
+  .credit a:hover{text-decoration:underline}
   .modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:1rem}
   .modal.active{display:flex}
   .card{background:var(--panel-2);border:1px solid #2a2d33;max-width:min(720px,90vw);border-radius:14px;padding:1rem}
@@ -51,10 +57,10 @@
   }
 </style>
 </head>
-<body>
+<body oncontextmenu="return false">
 <div class="app" id="app">
   <div class="topbar" role="toolbar" aria-label="Controles de CursoPlayer">
-    <input id="file" type="file" accept="video/*">
+    <input id="file" type="file" accept="video/*" />
     <button id="openBtn">📂 Abrir</button>
     <button id="playBtn">⏸ Pausa</button>
     <button id="mirrorBtn">Espejo: OFF</button>
@@ -65,33 +71,37 @@
     <button id="rateUp">Vel+</button>
     <button id="rateReset">Vel 1.00x</button>
     <div class="spacer"></div>
-    <button id="markA">Marca A ✓</button>
-    <button id="markB">Marca B ✓</button>
+    <button id="markA">Marca A</button>
+    <button id="markB">Marca B</button>
     <button id="clearAB" class="ghost">Desmarcar A‑B</button>
-    <button id="cutAB" title="Recorta el segmento A‑B y descarga">✂ Recortar A‑B</button>
+    <!-- Botón Recortar A‑B eliminado en Rev 2 -->
     <button id="loopBtn">Bucle A‑B: OFF</button>
   </div>
 
   <div class="video-wrap" id="vw">
-    <video id="vid" preload="metadata" playsinline="" src="blob:null/0b742cb6-5439-47f2-ba24-14a6966def14"></video>
+    <video id="vid" preload="metadata" playsinline></video>
     <div class="overlay"></div>
   </div>
 
   <div class="bottom">
     <div class="labels">
-      <span class="tc" id="tcA">A: 00:00:48.867</span>
-      <span class="tc" id="tcB">B: 00:01:25.822</span>
+      <span class="tc" id="tcA">A: --:--:--.---</span>
+      <span class="tc" id="tcB">B: --:--:--.---</span>
     </div>
     <div class="tl" id="timeline" aria-label="Línea de tiempo">
       <div class="tl-rail"></div>
-      <div class="tl-fill" style="width: 79.5909%;"></div>
-      <div class="tl-ab" style="display: block; left: 26.9964%; right: 52.5877%;"></div>
-      <div class="tl-mark" id="markAline" style="display: block; left: 26.9964%;"></div>
-      <div class="tl-mark" id="markBline" style="display: block; left: 47.4123%;"></div>
-      <div class="tl-knob" style="left: 79.5909%;"></div>
+      <div class="tl-fill"></div>
+      <div class="tl-ab" style="display:none"></div>
+      <div class="tl-mark" id="markAline" style="display:none"></div>
+      <div class="tl-mark" id="markBline" style="display:none"></div>
+      <div class="tl-knob" style="left:0%"></div>
       <div class="tl-hit" title="Arrastra para navegar"></div>
     </div>
-    <div class="tc"><span id="tcNow">00:02:24.069</span> / <span id="tcDur">00:03:01.012</span></div>
+    <div class="tc"><span id="tcNow">00:00:00.000</span> / <span id="tcDur">00:00:00.000</span></div>
+    <div class="credit">
+      CursoPlayer © 2025 Francisco Javier Falcón Muñoz —
+      <a href="mailto:falcon.fjf@gmail.com" rel="author noopener noreferrer">falcon.fjf@gmail.com</a>
+    </div>
   </div>
 </div>
 
@@ -103,14 +113,14 @@
     <div class="row" style="margin-top:.8rem">
       <button id="closeInfo" class="ghost">Cerrar</button>
     </div>
+    <div class="hint" style="margin-top:.8rem">
+      <strong>Atajos:</strong> Espacio reproducir/pausar · J/L vel‑/vel+ · K vel normal · A/B marcas · F pantalla completa
+    </div>
   </div>
 </div>
 
-<!-- Toast simple -->
-<div id="toast" style="position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(34, 34, 34, 0.667); backdrop-filter: blur(6px); color: rgb(255, 255, 255); padding: 0.6rem 0.9rem; border-radius: 10px; display: none;">Error al recortar (ver consola)</div>
-
 <script type="module">
-  // Utilidades
+  // === Utilidades básicas ===
   const $ = sel => document.querySelector(sel);
   const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
   const fmtTC = (sec)=>{
@@ -122,19 +132,16 @@
     const z = n=>String(n).padStart(2,'0');
     return `${z(h)}:${z(m)}:${z(s)}.${String(ms).padStart(3,'0')}`;
   };
-  const toast=(msg,ms=1600)=>{const t=$("#toast");t.textContent=msg;t.style.display="block";clearTimeout(t._id);t._id=setTimeout(()=>t.style.display="none",ms)};
 
-  // Estado
+  // === Estado ===
   const vid = $("#vid");
-  let fileHandle = null;           // File del usuario para ffmpeg.wasm
+  let fileHandle = null;
   let pointA = null, pointB = null;
   let loopAB = false;
   let dragging = null;             // 'seek' | 'A' | 'B'
   let userRate = 1.0;
-  let ffmpeg = null;
-  let ffmpegReady = false;
 
-  // Controles
+  // === Controles ===
   const btnOpen = $("#openBtn");
   const fileInp = $("#file");
   const btnPlay = $("#playBtn");
@@ -147,7 +154,6 @@
   const btnA = $("#markA");
   const btnB = $("#markB");
   const btnClear = $("#clearAB");
-  const btnCut = $("#cutAB");
   const btnLoop = $("#loopBtn");
   const tl = $("#timeline");
   const tlFill = tl.querySelector(".tl-fill");
@@ -157,21 +163,20 @@
   const markAline = $("#markAline");
   const markBline = $("#markBline");
   const tcA = $("#tcA"), tcB = $("#tcB"), tcNow = $("#tcNow"), tcDur = $("#tcDur");
+  const vw = $("#vw");
 
-  // Abrir archivo (input y drag&drop)
+  // === Apertura de archivo (botón y drag&drop) ===
   btnOpen.addEventListener("click",()=>fileInp.click());
   fileInp.addEventListener("change",e=>{
     const f = e.target.files?.[0];
     if(f) loadFile(f);
   });
-  const vw = $("#vw");
   ["dragenter","dragover"].forEach(ev=>vw.addEventListener(ev,e=>{e.preventDefault();e.dataTransfer.dropEffect="copy";vw.style.outline="2px dashed #4c9eff"}));
   ["dragleave","drop"].forEach(ev=>vw.addEventListener(ev, e=>{e.preventDefault();vw.style.outline="none"}));
   vw.addEventListener("drop", e=>{
     const f = [...e.dataTransfer.files].find(f=>f.type.startsWith("video/")) || e.dataTransfer.files[0];
     if(f) loadFile(f);
   });
-
   async function loadFile(file){
     fileHandle = file;
     const url = URL.createObjectURL(file);
@@ -180,16 +185,15 @@
     btnPlay.textContent = "⏸ Pausa";
     resetAB();
     userRate = 1.0; applyRate();
-    toast("Archivo cargado: " + (file.name || "video"));
   }
 
-  // Reproducir / pausa
+  // === Reproducir / Pausar ===
   btnPlay.addEventListener("click",()=>{
     if(vid.paused){vid.play();btnPlay.textContent="⏸ Pausa";}
     else {vid.pause();btnPlay.textContent="▶ Reproducir";}
   });
 
-  // Info
+  // === Info ===
   const modal = $("#infoModal"), infoText=$("#infoText");
   btnInfo.addEventListener("click",()=>{
     const dur = Number.isFinite(vid.duration) ? fmtTC(vid.duration) : "--:--:--.---";
@@ -197,20 +201,13 @@
     infoText.innerHTML = `
       <div><strong>Fichero:</strong> ${name}</div>
       <div><strong>Duración:</strong> ${dur}</div>
-      <div><strong>Reproductor:</strong> HTML5 Video</div>
-      <div style="margin-top:.4rem" class="hint">
-        <span class="tag">Espacio = Reproducir/Pausa</span>
-        <span class="tag">F11 = Pantalla completa</span>
-        <span class="tag">←/→ = ±10%</span>
-        <span class="tag">↑/↓ = ±10s</span>
-        <span class="tag">Rueda = ±2s</span>
-      </div>`;
+      <div><strong>Reproductor:</strong> HTML5 Video</div>`;
     modal.classList.add("active");
   });
-  $("#closeInfo").addEventListener("click",()=>modal.classList.remove("active"));
+  document.getElementById("closeInfo").addEventListener("click",()=>modal.classList.remove("active"));
   modal.addEventListener("click",e=>{ if(e.target===modal) modal.classList.remove("active") });
 
-  // Fullscreen
+  // === Pantalla completa ===
   btnFS.addEventListener("click",()=>toggleFS());
   function toggleFS(){
     const el = document.documentElement;
@@ -221,19 +218,19 @@
     btnFS.textContent = document.fullscreenElement? "Salir pantalla completa" : "Pantalla completa";
   });
 
-  // Mirror
+  // === Espejo ===
   btnMirror.addEventListener("click",()=>{
     vid.classList.toggle("mirror");
     btnMirror.textContent = "Espejo: " + (vid.classList.contains("mirror") ? "ON" : "OFF");
   });
 
-  // Velocidad
+  // === Velocidad ===
   function applyRate(){ vid.playbackRate = userRate; btnRateReset.textContent = `Vel ${userRate.toFixed(2)}x`; }
   btnRateDn.addEventListener("click",()=>{ userRate = clamp((userRate-0.1),0.10,3.0); applyRate() });
   btnRateUp.addEventListener("click",()=>{ userRate = clamp((userRate+0.1),0.10,3.0); applyRate() });
   btnRateReset.addEventListener("click",()=>{ userRate = 1.0; applyRate() });
 
-  // Marcas A/B
+  // === Marcas A/B ===
   function resetAB(){
     pointA = pointB = null; loopAB=false;
     btnLoop.textContent = "Bucle A‑B: OFF";
@@ -260,14 +257,10 @@
   });
   const abValid = ()=> pointA!=null && pointB!=null && pointB>pointA;
 
-  // Línea de tiempo
+  // === Timeline ===
   function ratioFromX(x){
     const rect = tl.getBoundingClientRect();
     return clamp((x-rect.left)/rect.width,0,1);
-  }
-  function xFromRatio(r){
-    const rect = tl.getBoundingClientRect();
-    return rect.left + rect.width * clamp(r,0,1);
   }
   function drawTL(){
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
@@ -295,20 +288,19 @@
   vid.addEventListener("durationchange", drawTL);
   vid.addEventListener("loadedmetadata", drawTL);
 
-  // Bucle A‑B
+  // === Bucle A‑B y fin de vídeo ===
   vid.addEventListener("timeupdate", ()=>{
     if(loopAB && abValid()){
       if(vid.currentTime < pointA) vid.currentTime = pointA;
       if(vid.currentTime >= pointB) vid.currentTime = pointA;
     }
   });
-  // Cuando termina y no hay A‑B, reinicia (bucle global como en escritorio)
   vid.addEventListener("ended", ()=>{
     if(loopAB && abValid()) { vid.currentTime = pointA; vid.play(); }
     else { vid.currentTime = 0; vid.play(); }
   });
 
-  // Interacción timeline: click/drag seek + arrastre de marcas
+  // === Interacción timeline: click/drag seek + arrastre marcas ===
   function whichHit(e){
     const rect = tl.getBoundingClientRect();
     const x = e.clientX;
@@ -323,7 +315,8 @@
     return "seek";
   }
   function setTimeFromClientX(clientX){
-    const r = ratioFromX(clientX);
+    const rect = tl.getBoundingClientRect();
+    const r = clamp((clientX-rect.left)/rect.width,0,1);
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
     let t = r*dur;
     if(loopAB && abValid()){
@@ -340,7 +333,8 @@
   window.addEventListener("mousemove",(e)=>{
     if(!dragging) return;
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
-    const r = ratioFromX(e.clientX);
+    const rect = tl.getBoundingClientRect();
+    const r = clamp((e.clientX-rect.left)/rect.width,0,1);
     const t = r*dur;
     if(dragging==="A"){
       pointA = clamp(t, 0, dur);
@@ -355,7 +349,7 @@
   });
   window.addEventListener("mouseup", ()=> dragging=null);
 
-  // Scroll rueda ±2s
+  // === Scroll rueda ±2s ===
   tl.addEventListener("wheel",(e)=>{
     e.preventDefault();
     const delta = e.deltaY<0 ? 2 : -2;
@@ -365,20 +359,30 @@
     vid.currentTime = t; drawTL();
   }, {passive:false});
 
-  // Atajos teclado
+  // === Atajos teclado solicitados ===
   window.addEventListener("keydown",(e)=>{
+    // Anti-copia: bloquear combinaciones comunes (no infalible)
+    if((e.ctrlKey||e.metaKey) && ["s","u","p","c","a"].includes(e.key.toLowerCase())) { e.preventDefault(); return; }
+    if((e.ctrlKey||e.metaKey) && e.shiftKey && ["i","j","c"].includes(e.key.toLowerCase())) { e.preventDefault(); return; }
+    if(e.key === "F12"){ e.preventDefault(); return; }
+
     if(e.target.closest("input,textarea")) return;
-    if(e.code==="Space"){ e.preventDefault(); btnPlay.click(); }
-    else if(e.code==="F11"){ e.preventDefault(); toggleFS(); }
-    else if(e.key==="ArrowLeft"){ seekPercent(-0.10); }
-    else if(e.key==="ArrowRight"){ seekPercent(+0.10); }
-    else if(e.key==="ArrowUp"){ seekSeconds(+10); }
-    else if(e.key==="ArrowDown"){ seekSeconds(-10); }
-    else if(e.key==="4" && e.location===3){ seekPercent(-0.10); } // KP_4
-    else if(e.key==="6" && e.location===3){ seekPercent(+0.10); } // KP_6
-    else if(e.key==="8" && e.location===3){ seekSeconds(+10); }   // KP_8
-    else if(e.key==="2" && e.location===3){ seekSeconds(-10); }   // KP_2
+
+    const k = e.key.toLowerCase();
+    if(k===" "){ e.preventDefault(); btnPlay.click(); }
+    else if(k==="j"){ e.preventDefault(); btnRateDn.click(); }
+    else if(k==="l"){ e.preventDefault(); btnRateUp.click(); }
+    else if(k==="k"){ e.preventDefault(); btnRateReset.click(); }
+    else if(k==="a"){ e.preventDefault(); btnA.click(); }
+    else if(k==="b"){ e.preventDefault(); btnB.click(); }
+    else if(k==="f"){ e.preventDefault(); btnFS.click(); }
+    // Conservamos flechas por comodidad
+    else if(k==="arrowleft"){ seekPercent(-0.10); }
+    else if(k==="arrowright"){ seekPercent(+0.10); }
+    else if(k==="arrowup"){ seekSeconds(+10); }
+    else if(k==="arrowdown"){ seekSeconds(-10); }
   });
+
   function seekSeconds(ds){
     const dur = Number.isFinite(vid.duration)? vid.duration : 0;
     let t = clamp(vid.currentTime + ds, 0, dur);
@@ -391,67 +395,9 @@
     seekSeconds(step);
   }
 
-  // --- Recorte con ffmpeg.wasm ---
-  btnCut.addEventListener("click", async () => {
-    if(!(abValid())) return toast("Marca correctamente A y B");
-    if(!fileHandle){ return toast("Abre un archivo de vídeo local para recortar"); }
-    btnCut.disabled = true;
-    try{
-      await ensureFFmpeg();
-      const {name} = fileHandle;
-      const inputName = name || "input.mp4";
-      const data = new Uint8Array(await fileHandle.arrayBuffer());
-      const fs = ffmpeg.FS;
-      // limpiar FS virtual
-      for(const f of fs.readdir("/")){ if(f !== "." && f !== "..") try{fs.unlink("/"+f)}catch{} }
-      fs.writeFile(inputName, data);
-      const toHHMMSS = s=>{
-        const ms = Math.round((s%1)*1000);
-        const sec = Math.floor(s)%60, min = Math.floor(s/60)%60, hr = Math.floor(s/3600);
-        const z=n=>String(n).padStart(2,"0");
-        return `${z(hr)}:${z(min)}:${z(sec)}.${String(ms).padStart(3,"0")}`;
-      };
-      const ss = toHHMMSS(pointA);
-      const t  = toHHMMSS(pointB - pointA);
-      const out = inputName.replace(/\.(\w+)$/i, (_,ext)=>` - (recortado ${ss.replace(/[:.]/g,"-")} a ${toHHMMSS(pointB).replace(/[:.]/g,"-")}).${ext}`);
-      // primero intento 'copy' (rápido); si falla, recodifico H.264
-      try{
-        await ffmpeg.run("-y","-ss", ss, "-i", inputName, "-t", t, "-c","copy", out);
-      }catch(e){
-        await ffmpeg.run("-y","-ss", ss, "-i", inputName, "-t", t, "-c:v","libx264","-c:a","copy", out);
-      }
-      const outData = ffmpeg.FS("readFile", out);
-      const blob = new Blob([outData.buffer], {type: fileHandle.type || "video/mp4"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = out;
-      a.click();
-      toast("Segmento recortado listo para descargar");
-    }catch(err){
-      console.error(err);
-      toast("Error al recortar (ver consola)");
-    }finally{
-      btnCut.disabled = false;
-    }
-  });
-
-  async function ensureFFmpeg(){
-    if(ffmpegReady) return;
-    // Carga perezosa desde CDN
-    const mod = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js");
-    const { createFFmpeg, fetchFile } = mod;
-    ffmpeg = createFFmpeg({ log: false, corePath: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js" });
-    toast("Cargando motor de recorte…");
-    await ffmpeg.load();
-    ffmpegReady = true;
-  }
-
-  // Inicial
-  vid.controls = false; // usamos controles propios
-  vid.addEventListener("loadedmetadata",()=> drawTL(), {once:true});
-  // Para iOS, permitir autoplay tras user-gesture
+  // === Inicial ===
+  vid.controls = false; // controles propios
   document.addEventListener("touchend", ()=>{ if(vid.paused && vid.src) vid.play().catch(()=>{}) }, {once:true});
 </script>
-
-
-</body></html>
+</body>
+</html>
