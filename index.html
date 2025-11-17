@@ -1,208 +1,624 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CursoPlayer Web — by Fran Falcón (Rev 3)</title>
-<meta name="theme-color" content="#131834">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CursoPlayer Minimal</title>
 <style>
-  :root{
-    --bg:#0d1021;
-    --panel:#131834;
-    --panel-2:#0f132b;
-    --border:#1f264a;
-    --text:#e9ecf5;
-    --muted:#b5bdd6;
-    --rail:#273058;
-    --rail-fill:#c94055;
-    --ab:#1d7a46;
-    --ab-rail:#1d7a4699;
-    --btn:#1a2144;
-    --btn-h:#232c5b;
-    --badge:#2b3a86;
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+  .brand{position:absolute;top:10px;left:12px;z-index:20;color:#fff;font-size:12px;opacity:.85;letter-spacing:.2px;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:8px;user-select:none;pointer-events:none}
+  .ctrls{position:absolute;bottom:12vh;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:1rem;pointer-events:auto;z-index:10}
+  .btn{min-width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.25);position:relative;color:#fff}
+  .btn:hover{background:rgba(255,255,255,.28)}
+  .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
+  .btn--text{min-width:72px;width:auto;padding:0 .6rem;border-radius:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;opacity:.95;text-align:center;cursor:pointer}
+  .active{box-shadow:0 0 0 2px rgba(255,255,255,.55) inset,0 0 12px rgba(255,255,255,.35)}
+  .active svg{opacity:1}
+  input[type=file]{display:none}
+  .pulse::after{content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 3px rgba(255,255,255,.6);animation:pulse .18s ease-out forwards}
+  @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.15)}}
+
+  
+  .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer}
+  .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px}
+  .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:#ffffffcc;border-radius:2px;pointer-events:none}
+  .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:rgba(255,255,255,.35);border-radius:6px;width:0%;pointer-events:none}
+  .dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);left:0%;pointer-events:none}
+
+  .mark{
+    position:absolute;
+    top:50%;
+    transform:translate(-50%,-50%);
+    width:24px;
+    height:24px;
+    border-radius:4px;
+    background:transparent;
+    pointer-events:auto;
+    cursor:default;
+    opacity:0;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
-    font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Noto Sans", "Helvetica Neue", Arial;
-    -webkit-user-select:none; user-select:none;}
-  a{color:#9ec3ff;text-decoration:none}
-  a:hover{text-decoration:underline}
-  .app{display:grid;grid-template-rows:auto 1fr auto;gap:.6rem;height:100%;padding:.6rem}
-  .shell{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:.5rem}
-  .topbar{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
-  .brand{display:flex;gap:.5rem;align-items:center;margin-right:.25rem;font-weight:600}
-  .badge{font-size:.75rem;background:var(--badge);border:1px solid var(--border);color:#bcd3ff;padding:.15rem .45rem;border-radius:999px}
-  input#file{display:none}
-  button{appearance:none;border:1px solid var(--border);background:var(--btn);color:var(--text);
-    padding:.55rem .7rem;border-radius:10px;cursor:pointer;transition:.12s;white-space:nowrap}
-  button:hover{background:var(--btn-h)}
-  button.ghost{background:transparent}
-  .btn-blue{background:#1e2f97} .btn-blue:hover{background:#2638af}
-  .btn-green{background:#1d7a46} .btn-green:hover{background:#249a59}
-  .btn-amber{background:#754d10} .btn-amber:hover{background:#946321}
-  .btn-red{background:#79222b} .btn-red:hover{background:#962a36}
-  .btn-dark{background:#1d2249} .btn-dark:hover{background:#242c62}
-  .video-wrap{position:relative;background:black;border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:40vh}
-  video{width:100%;height:100%;display:block;background:black}
-  .mirror{transform:scaleX(-1)}
-  .overlay{position:absolute;inset:0;pointer-events:none}
-  .bottom{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.6rem}
-  .labels{display:flex;gap:.75rem;color:var(--muted)}
-  .tc{color:var(--muted);font-variant-numeric:tabular-nums}
-  .credit{grid-column:1/-1;color:#aeb6d3;font-size:.82rem;opacity:.9;text-align:center}
-  .tl{position:relative;height:36px;user-select:none}
-  .tl-rail{position:absolute;left:2%;right:2%;top:50%;height:8px;transform:translateY(-50%);
-    background:linear-gradient(180deg, #3a426b 0%, var(--rail) 100%);border-radius:999px;outline:1px solid var(--border)}
-  .tl-fill{position:absolute;left:2%;top:50%;height:8px;transform:translateY(-50%);background:var(--rail-fill);border-radius:999px;display:none;}
-  .tl-ab{position:absolute;top:50%;height:14px;transform:translateY(-50%);background:var(--ab-rail);border-radius:8px;display:none;}
-  .tl-knob{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);
-    background:#ffd1d8;outline:1px solid #3a1e26;box-shadow:0 0 0 2px #0003;display:none;}
-  .tl-mark{position:absolute;top:50%;width:2px;height:18px;transform:translate(-50%,-50%);background:var(--ab);display:none;}
-  .tl-hit{position:absolute;inset:0;cursor:pointer}
-  @media (max-width:860px){
-    .bottom{grid-template-columns:1fr;gap:.35rem}
-    .credit{font-size:.78rem}
+  .mark::before{
+    content:"";
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:2px;
+    height:14px;
+    border-radius:2px;
+    background:#ffffffee;
+    box-shadow:0 0 6px rgba(255,255,255,.35);
   }
+  .mark.show{opacity:1}
+
+  .ab-range{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    height:16px;
+    background:rgba(255,255,255,.72);
+    border-radius:8px;
+    left:0;width:0;
+    pointer-events:none;
+    opacity:0
+  }
+  .ab-range.show{opacity:1}
+
+  .info{position:absolute;right:12px;top:12px;z-index:25;max-width:min(92vw,520px);background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);padding:12px 14px;border-radius:12px;backdrop-filter:blur(4px);display:none;line-height:1.35}
+  .info h3{margin:.2rem 0 .6rem;font-size:14px;opacity:.95}
+  .info p{margin:.25rem 0;font-size:13px;opacity:.95;white-space:pre-line}
+  .hidden{display:none!important}
+
+  .vol-pop{
+    position:absolute;
+    bottom:52px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:15;
+    background:rgba(0,0,0,.5);
+    border:1px solid rgba(255,255,255,.3);
+    border-radius:10px;
+    padding:4px;
+    display:none;
+    backdrop-filter:blur(4px);
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    width:40px;
+  }
+  .vol-pop input[type=range]{
+    width:120px;
+    appearance:none;
+    background:transparent;
+    transform:rotate(-90deg);
+  }
+  .vol-pop input[type=range]::-webkit-slider-runnable-track{
+    height:1px;
+    background:#ffffff66;
+    border-radius:4px
+  }
+  .vol-pop input[type=range]::-webkit-slider-thumb{
+    appearance:none;
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    margin-top:-6px;
+    box-shadow:0 0 0 2px rgba(255,255,255,.35)
+  }
+  .vol-pop input[type=range]::-moz-range-track{
+    height:1px;
+    background:#ffffff66;
+    border-radius:4px
+  }
+  .vol-pop input[type=range]::-moz-range-thumb{
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    border:none
+  }
+
+  .btn[data-tip]::before{
+    content:attr(data-tip);
+    position:absolute;
+    bottom:48px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.8);
+    color:#fff;
+    font-size:11px;
+    padding:3px 6px;
+    border-radius:6px;
+    white-space:nowrap;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .12s ease-out;
+  }
+  .btn[data-tip]:hover::before{
+    opacity:1;
+  }
+
 </style>
 </head>
-<body oncontextmenu="return false">
-<div class="app" id="app">
-  <div class="shell">
-    <div class="topbar" role="toolbar" aria-label="Controles de CursoPlayer">
-      <div class="brand">CursoPlayerWeb</div>
-      <input id="file" type="file" accept="video/*" />
-      <button id="openBtn" class="btn-dark">📂 Abrir</button>
-      <button id="playBtn" class="btn-blue">▶ Reproducir</button>
-      <button id="mirrorBtn" class="btn-dark">Espejo: OFF</button>
-      <button id="infoBtn" class="btn-dark">ℹ Info</button>
-      <button id="fsBtn" class="btn-dark">Pantalla completa</button>
-      <button id="rateDown" class="btn-amber">Vel-</button>
-      <button id="rateUp" class="btn-amber">Vel+</button>
-      <button id="rateReset" class="btn-amber">Vel 1.00x</button>
-      <button id="markA" class="btn-green">Marca A</button>
-      <button id="markB" class="btn-green">Marca B</button>
-      <button id="clearAB" class="btn-dark">Desmarcar A-B</button>
-      <button id="loopBtn" class="btn-red">Bucle A-B: OFF</button>
-    </div>
+<body>
+
+<div class="brand">CursoPlayerWeb — © 2025 Fran Falcón</div>
+
+<input id="file" type="file" accept="video/*">
+<video id="vid" playsinline></video>
+
+<div class="seek" id="seek">
+  <div class="seek-inner" id="seekInner">
+    <div class="trail" id="trail"></div>
+    <div class="ab-range" id="abRange"></div>
+    <div class="track"></div>
+    <div class="mark" id="markA" title="A"></div>
+    <div class="mark" id="markB" title="B"></div>
+    <div class="dot" id="dot"></div>
   </div>
-  <div class="video-wrap">
-    <video id="vid" preload="metadata" playsinline></video>
-    <div class="overlay"></div>
+</div>
+
+<div class="info" id="infoPanel">
+  <h3>Información del archivo</h3>
+  <p id="infoMeta">Abre un vídeo para ver los detalles.</p>
+  <h3>Acerca de</h3>
+  <p id="aboutMeta"></p>
+</div>
+
+<div class="ctrls" id="ctrls">
+  <div class="btn" id="open" data-tip="Abrir vídeo">
+    <svg viewBox="0 0 24 24">
+      <path d="M3 7h5l2 3h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <path d="M3 7V5a2 2 0 0 1 2-2h5l2 2"/>
+    </svg>
   </div>
-  <div class="shell">
-    <div class="bottom">
-      <div class="labels">
-        <span class="tc" id="tcA">A: --:--:--.---</span>
-        <span class="tc" id="tcB">B: --:--:--.---</span>
-      </div>
-      <div class="tl" id="timeline" aria-label="Línea de tiempo">
-        <div class="tl-rail"></div>
-        <div class="tl-fill" id="tlFill"></div>
-        <div class="tl-ab" id="tlAB"></div>
-        <div class="tl-mark" id="markAline"></div>
-        <div class="tl-mark" id="markBline"></div>
-        <div class="tl-knob" id="tlKnob" style="left:0%"></div>
-        <div class="tl-hit" title="Arrastra para navegar"></div>
-      </div>
-      <div class="tc"><span id="tcNow">00:00:00.000</span> / <span id="tcDur">00:00:00.000</span></div>
-      <div class="credit">
-        CursoPlayer © 2025 Francisco Javier Falcón Muñoz —
-        <a href="mailto:falcon.fjf@gmail.com" rel="author noopener noreferrer">falcon.fjf@gmail.com</a>
-        &nbsp;•&nbsp;
-        <span class="tc">Atajos: Espacio reproducir/pausar · J/L vel-/vel+ · K vel normal · A/B marcas · F pantalla completa</span>
-      </div>
+
+  <div class="btn" id="infoBtn" data-tip="Información">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 16v-5"/>
+      <circle cx="12" cy="8" r="1"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="play" data-tip="Reproducir / Pausa">
+    <svg id="playIcon" viewBox="0 0 24 24">
+      <path d="M8 5v14l11-7z" id="playShape"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="fs" data-tip="Pantalla completa">
+    <svg viewBox="0 0 24 24">
+      <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="mirror" data-tip="Espejo">
+    <svg viewBox="0 0 24 24">
+      <path d="M2 7h20M2 17h20"/>
+      <path d="M12 3v18"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="speedDown" data-tip="Velocidad -">
+    <svg viewBox="0 0 24 24">
+      <path d="M5 12h14"/>
+    </svg>
+  </div>
+
+  <div class="btn btn--text" id="rateLabel" data-tip="Velocidad actual (click para 1.00×)">1.00×</div>
+
+  <div class="btn" id="speedUp" data-tip="Velocidad +">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="markA_btn" data-tip="Marca A">
+    <svg viewBox="0 0 24 24">
+      <rect x="4" y="4" width="16" height="16" rx="3" ry="3"/>
+      <text x="12" y="16" text-anchor="middle" font-size="10" fill="#fff" stroke="none" font-weight="700">A</text>
+    </svg>
+  </div>
+
+  <div class="btn" id="markB_btn" data-tip="Marca B">
+    <svg viewBox="0 0 24 24">
+      <rect x="4" y="4" width="16" height="16" rx="3" ry="3"/>
+      <text x="12" y="16" text-anchor="middle" font-size="10" fill="#fff" stroke="none" font-weight="700">B</text>
+    </svg>
+  </div>
+
+  <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
+    <svg viewBox="0 0 24 24">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="loop" data-tip="Bucle A-B">
+    <svg viewBox="0 0 24 24">
+      <path d="M4 10a6 6 0 0 1 6-6h5"/>
+      <path d="M15 4l-2-2 2-2"/>
+      <path d="M20 14a6 6 0 0 1-6 6h-5"/>
+      <path d="M9 20l2 2-2 2"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="volumeBtn" data-tip="Volumen">
+    <svg viewBox="0 0 24 24">
+      <path d="M3 10h4l5-4v12l-5-4H3z"/>
+      <path d="M16 8a4 4 0 0 1 0 8"/>
+    </svg>
+    <div class="vol-pop" id="volPop">
+      <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
     </div>
   </div>
 </div>
-<!-- Modal Info -->
-<div class="shell" id="infoModal" style="display:none; position:fixed; inset:0; background:#0007;align-items:center;justify-content:center;">
-  <div style="background:var(--panel);border:1px solid var(--border);max-width:min(720px,90vw);border-radius:14px;padding:1rem">
-    <h3 style="margin:.2rem 0 1rem">Información del clip</h3>
-    <div id="infoText" style="color:var(--muted)"></div>
-    <div style="margin-top:.9rem;display:flex;gap:.5rem;justify-content:flex-end">
-      <button id="closeInfo" class="ghost">Cerrar</button>
-    </div>
-  </div>
-</div>
-<script type="module">
-// Elementos
-const fileInput = document.getElementById('file');
-const openBtn = document.getElementById('openBtn');
-const video = document.getElementById('vid');
-const tlKnob = document.getElementById('tlKnob');
-const tlFill = document.getElementById('tlFill');
-const timeline = document.getElementById('timeline');
-const tcNow = document.getElementById('tcNow');
-const tcDur = document.getElementById('tcDur');
-const playBtn = document.getElementById('playBtn');
 
-// Oculta la progresión hasta que el video esté listo
-function hideTimelineElems() {
-  tlKnob.style.display = "none";
-  tlFill.style.display = "none";
-  document.getElementById('tlAB').style.display = "none";
-  document.getElementById('markAline').style.display = "none";
-  document.getElementById('markBline').style.display = "none";
+<script>
+const vid = document.querySelector("#vid");
+const file = document.querySelector("#file");
+const seek = document.querySelector("#seek");
+const inner = document.querySelector("#seekInner");
+const trail = document.querySelector("#trail");
+const dot = document.querySelector("#dot");
+const markAEl = document.querySelector("#markA");
+const markBEl = document.querySelector("#markB");
+const abRange = document.querySelector("#abRange");
+
+const openBtn   = document.querySelector("#open");
+const playBtn   = document.querySelector("#play");
+const playShape = document.querySelector("#playShape");
+const mirrorBtn = document.querySelector("#mirror");
+const loopBtn   = document.querySelector("#loop");
+const markABtn  = document.querySelector("#markA_btn");
+const markBBtn  = document.querySelector("#markB_btn");
+const clearABBtn= document.querySelector("#clearAB");
+const rateLabel = document.querySelector("#rateLabel");
+const speedDownBtn = document.querySelector("#speedDown");
+const speedUpBtn   = document.querySelector("#speedUp");
+const infoBtn   = document.querySelector("#infoBtn");
+const infoPanel = document.querySelector("#infoPanel");
+const infoMeta  = document.querySelector("#infoMeta");
+const aboutMeta = document.querySelector("#aboutMeta");
+const volumeBtn = document.querySelector("#volumeBtn");
+const volPop    = document.querySelector("#volPop");
+const volRange  = document.querySelector("#volRange");
+const fsBtn     = document.querySelector("#fs");
+
+let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
+let isSeeking=false;
+let draggingMark = null;
+let currentFile = null;
+
+// anti guardado básico
+document.addEventListener("contextmenu",(e)=>e.preventDefault(),{passive:false});
+document.addEventListener("keydown",(e)=>{
+  if((e.ctrlKey||e.metaKey) && (["s","p","u","S","P","U"].includes(e.key))){e.preventDefault();}
+},{passive:false});
+
+function pulse(el){
+  el.classList.remove("pulse");void el.offsetWidth;el.classList.add("pulse");
 }
-function showTimelineElems() {
-  tlKnob.style.display = "";
-  tlFill.style.display = "";
-  // Puedes manejar la lógica de mostrar el resto según implementación de marcas
+
+/* Estados de UI dependientes de rate */
+function updateRateUI(){
+  rateLabel.textContent = rate.toFixed(2)+"×";
+  const isNormal = Math.abs(rate-1) < 0.001;
+  rateLabel.classList.toggle("active", isNormal);
+  speedDownBtn.classList.toggle("active", rate < 1);
+  speedUpBtn.classList.toggle("active", rate > 1);
 }
 
-// Inicialmente ocultar timeline elementos
-hideTimelineElems();
+/* Estado del botón de volumen */
+function updateVolumeUI(){
+  volumeBtn.classList.toggle("active", vid.volume > 0);
+}
 
-// Abrir archivo de video
-openBtn.addEventListener('click', () => fileInput.click());
-
-// Cuando se selecciona video
-fileInput.addEventListener('change', () => {
-  if (fileInput.files.length) {
-    const file = fileInput.files[0];
-    const url = URL.createObjectURL(file);
-    video.src = url;
-    video.load();
-    // Deja play manual para que el botón funcione
-    tcDur.textContent = "Cargando...";
+/* Abrir archivo: activo mientras está el diálogo */
+openBtn.onclick = ()=>{
+  pulse(openBtn);
+  openBtn.classList.add("active");
+  file.click();
+};
+file.onchange = e=>{
+  openBtn.classList.remove("active");
+  const f = e.target.files[0];
+  if(f){
+    currentFile = f;
+    vid.src = URL.createObjectURL(f);
+    vid.play();
+    setTimeout(updateInfoMeta,200);
   }
+};
+
+// Info toggle
+infoBtn.onclick=()=>{
+  pulse(infoBtn);
+  if(infoPanel.style.display==="block"){
+    infoPanel.style.display="none";
+    infoBtn.classList.remove("active");
+  }else{
+    updateInfoMeta();
+    infoPanel.style.display="block";
+    infoBtn.classList.add("active");
+  }
+};
+
+function human(n){
+  if(n<1024) return n+" B";
+  if(n<1024**2) return (n/1024).toFixed(1)+" KB";
+  if(n<1024**3) return (n/1024**2).toFixed(1)+" MB";
+  return (n/1024**3).toFixed(2)+" GB";
+}
+function updateInfoMeta(){
+  const lines=[];
+  if(currentFile){
+    const ruta = (currentFile.webkitRelativePath || currentFile.name || "(archivo local)");
+    lines.push("Ruta: " + ruta);
+    lines.push("Nombre: "+(currentFile.name||"(desconocido)"));
+    lines.push("Tamaño: "+human(currentFile.size||0));
+    if(currentFile.lastModified) lines.push("Modificado: "+new Date(currentFile.lastModified).toLocaleString());
+  }else{
+    lines.push("Ruta: —");
+    lines.push("Nombre: —");
+    lines.push("Tamaño: —");
+    lines.push("Modificado: —");
+  }
+  if(vid.videoWidth && vid.videoHeight){
+    lines.push("Resolución: "+vid.videoWidth+"×"+vid.videoHeight);
+  }else{
+    lines.push("Resolución: —");
+  }
+  if(vid.duration && isFinite(vid.duration)){
+    const d=Math.floor(vid.duration);
+    const mm=String(Math.floor(d/60)).padStart(2,"0");
+    const ss=String(d%60).padStart(2,"0");
+    lines.push("Duración: "+mm+":"+ss);
+  }else{
+    lines.push("Duración: —");
+  }
+  infoMeta.textContent = lines.join("\n");
+
+  const about=[
+    "CursoPlayerWeb",
+    "© 2025 Francisco Javier Falcón Muñoz",
+    "",
+    "Función: Herramienta didáctica para analizar vídeos de baile con:",
+    "• Reproducción con control de velocidad",
+    "• Marcas A y B y bucle A-B",
+    "• Barra de tiempo precisa con arrastre",
+    "• Espejo (flip horizontal)",
+    "• Pantalla completa",
+    "• Control de volumen"
+  ].join("\n");
+  aboutMeta.textContent = about;
+}
+
+// Play / pausa + estado activo
+playBtn.onclick=()=>{
+  pulse(playBtn);
+  if(vid.paused){vid.play();}
+  else{vid.pause();}
+};
+vid.addEventListener("play",()=>{
+  playShape.setAttribute("d","M7 5h4v14H7zM13 5h4v14h-4z");
+  playBtn.classList.add("active");
+});
+vid.addEventListener("pause",()=>{
+  playShape.setAttribute("d","M8 5v14l11-7z");
+  playBtn.classList.remove("active");
 });
 
-// Cuando el video está listo
-video.addEventListener('loadedmetadata', () => {
-  showTimelineElems();
-  tcDur.textContent = msf(video.duration * 1000);
-  tcNow.textContent = msf(0);
-  updateTimeline();
+// Pantalla completa + estado activo
+fsBtn.onclick=()=>{
+  pulse(fsBtn);
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+};
+document.addEventListener("fullscreenchange",()=>{
+  fsBtn.classList.toggle("active", !!document.fullscreenElement);
 });
 
-// Actualizar la barra de progreso y el knob al reproducir
-video.addEventListener('timeupdate', updateTimeline);
+// Espejo
+mirrorBtn.onclick=()=>{
+  isMirrored = !isMirrored;
+  vid.style.transform = isMirrored ? "scaleX(-1)" : "";
+  mirrorBtn.classList.toggle("active", isMirrored);
+  pulse(mirrorBtn);
+};
 
-function updateTimeline() {
-  if (video.duration > 0) {
-    const pct = (video.currentTime / video.duration) * 96 + 2; // asumiendo rail left/right 2%
-    tlKnob.style.left = `${pct}%`;
-    tlFill.style.width = `${pct-2}%`;
-    tcNow.textContent = msf(video.currentTime * 1000);
-  }
-}
+// Velocidad
+document.querySelector("#speedDown").onclick=()=>{
+  pulse(speedDownBtn);
+  rate = Math.max(.1, +(rate-.1).toFixed(2));
+  vid.playbackRate = rate;
+  updateRateUI();
+};
+document.querySelector("#speedUp").onclick=()=>{
+  pulse(speedUpBtn);
+  rate = Math.min(3, +(rate+.1).toFixed(2));
+  vid.playbackRate = rate;
+  updateRateUI();
+};
+rateLabel.onclick=()=>{
+  pulse(rateLabel);
+  rate = 1;
+  vid.playbackRate = 1;
+  updateRateUI();
+};
 
-// Convertir segundos MS a HH:MM:SS.mmm
-function msf(ms) {
-  let s = Math.floor(ms/1000), z=(ms%1000);
-  let h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
-  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}.${z.toString().padStart(3,"0")}`;
-}
+// Marcas A y B
+markABtn.onclick=()=>{
+  A = vid.currentTime;
+  markABtn.classList.add("active");
+  pulse(markABtn);
+  updateMarks();
+};
+markBBtn.onclick=()=>{
+  B = vid.currentTime;
+  markBBtn.classList.add("active");
+  pulse(markBBtn);
+  updateMarks();
+};
+clearABBtn.onclick=()=>{
+  A=null;B=null;
+  pulse(clearABBtn);
+  markABtn.classList.remove("active");
+  markBBtn.classList.remove("active");
+  updateMarks();
+};
+loopBtn.onclick=()=>{
+  loopAB=!loopAB;
+  loopBtn.classList.toggle("active",loopAB);
+  pulse(loopBtn);
+};
 
-// Botón de reproducción
-playBtn.addEventListener('click', () => {
-  if(video.src) {
-    if(video.paused) video.play();
-    else video.pause();
-  }
+// Volumen
+volumeBtn.onclick=(e)=>{
+  pulse(volumeBtn);
+  e.stopPropagation();
+  const isOpen = volPop.style.display==="flex";
+  volPop.style.display = isOpen ? "none" : "flex";
+};
+volRange.addEventListener("input",(e)=>{
+  vid.volume = +e.target.value;
+  updateVolumeUI();
+});
+document.addEventListener("click",(e)=>{
+  if(!volumeBtn.contains(e.target)) volPop.style.display="none";
 });
 
+function pct(){
+  if(!vid.duration || !isFinite(vid.duration)) return 0;
+  return Math.max(0,Math.min(1, vid.currentTime/vid.duration));
+}
+function timeToPct(t){
+  if(!vid.duration || !isFinite(vid.duration)) return 0;
+  const frac=Math.max(0,Math.min(1,t/vid.duration));
+  return frac*100;
+}
+function pctToTime(p){
+  if(!vid.duration || !isFinite(vid.duration)) return 0;
+  const frac=Math.max(0,Math.min(1,p/100));
+  return frac*vid.duration;
+}
+
+function updateMarks(){
+  if(A!=null){
+    markAEl.style.left = timeToPct(A)+"%";
+    markAEl.classList.add("show");
+  }else{
+    markAEl.classList.remove("show");
+  }
+  if(B!=null){
+    markBEl.style.left = timeToPct(B)+"%";
+    markBEl.classList.add("show");
+  }else{
+    markBEl.classList.remove("show");
+  }
+  if(A!=null && B!=null){
+    const a=Math.min(A,B), b=Math.max(A,B);
+    const left=timeToPct(a), right=timeToPct(b);
+    abRange.style.left = left+"%";
+    abRange.style.width = (right-left)+"%";
+    abRange.classList.add("show");
+  }else{
+    abRange.classList.remove("show");
+  }
+
+  // Botón Desmarcar activo cuando NO haya marcas
+  clearABBtn.classList.toggle("active", A==null && B==null);
+}
+
+function updateProgressUI(){
+  const p = pct()*100;
+  trail.style.width = p+"%";
+  dot.style.left = p+"%";
+  updateMarks();
+}
+
+vid.addEventListener("timeupdate",()=>{
+  if(loopAB && A!=null && B!=null && B>A){
+    if(vid.currentTime>=B) vid.currentTime=A;
+  }
+  updateProgressUI();
+});
+vid.addEventListener("loadedmetadata",()=>{
+  rate = 1;
+  vid.playbackRate = 1;
+  updateRateUI();
+  updateProgressUI();
+});
+window.addEventListener("resize",updateProgressUI);
+
+/* Seek por clic y arrastre */
+function setTimeFromClientX(clientX){
+  const r = inner.getBoundingClientRect();
+  let x = Math.max(r.left,Math.min(clientX,r.right));
+  const frac = (x-r.left)/r.width;
+  if(vid.duration && isFinite(vid.duration)){
+    vid.currentTime = frac*vid.duration;
+  }
+  updateProgressUI();
+}
+seek.addEventListener("pointerdown",(e)=>{
+  isSeeking=true;
+  seek.setPointerCapture(e.pointerId);
+  setTimeFromClientX(e.clientX);
+});
+seek.addEventListener("pointermove",(e)=>{
+  if(isSeeking) setTimeFromClientX(e.clientX);
+});
+seek.addEventListener("pointerup",(e)=>{
+  isSeeking=false;
+  seek.releasePointerCapture(e.pointerId);
+});
+seek.addEventListener("pointercancel",()=>{isSeeking=false;});
+
+/* Arrastre de marcas A y B con zona de marcación ampliada */
+function onMarkPointerDown(e,which){
+  if(!(vid.duration && isFinite(vid.duration))) return;
+  e.stopPropagation();
+  e.preventDefault();
+  draggingMark = which;
+  e.currentTarget.setPointerCapture(e.pointerId);
+}
+function onMarkPointerMove(e){
+  if(!draggingMark) return;
+  const r = inner.getBoundingClientRect();
+  let x = Math.max(r.left,Math.min(e.clientX,r.right));
+  const p = ((x-r.left)/r.width)*100;
+  const t = pctToTime(p);
+  if(draggingMark==="A") A = t;
+  if(draggingMark==="B") B = t;
+  updateMarks();
+}
+function onMarkPointerUp(e){
+  if(!draggingMark) return;
+  e.currentTarget.releasePointerCapture(e.pointerId);
+  draggingMark=null;
+}
+["pointerdown"].forEach(ev=>{
+  markAEl.addEventListener(ev,(e)=>onMarkPointerDown(e,"A"));
+  markBEl.addEventListener(ev,(e)=>onMarkPointerDown(e,"B"));
+});
+["pointermove"].forEach(ev=>{
+  markAEl.addEventListener(ev,onMarkPointerMove);
+  markBEl.addEventListener(ev,onMarkPointerMove);
+});
+["pointerup","pointercancel"].forEach(ev=>{
+  markAEl.addEventListener(ev,onMarkPointerUp);
+  markBEl.addEventListener(ev,onMarkPointerUp);
+});
+
+// Inicializar estados
+rate = 1;
+vid.playbackRate = 1;
+volRange.value = vid.volume;
+updateRateUI();
+updateVolumeUI();
+updateInfoMeta();
+updateProgressUI();
 </script>
+
 </body>
 </html>
