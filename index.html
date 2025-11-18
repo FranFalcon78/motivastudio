@@ -7,6 +7,7 @@
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+  .bg-frame{position:fixed;inset:0;z-index:-1;background:#000 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
   .brand{position:absolute;top:10px;left:12px;z-index:20;color:#fff;font-size:12px;opacity:.85;letter-spacing:.2px;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:8px;user-select:none;pointer-events:none}
   .ctrls{position:absolute;bottom:12vh;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:1rem;pointer-events:auto;z-index:10}
   .btn{min-width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.25);position:relative;color:#fff}
@@ -19,7 +20,7 @@
   .pulse::after{content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 3px rgba(255,255,255,.6);animation:pulse .18s ease-out forwards}
   @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.15)}}
 
-  
+
   .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer}
   .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px}
   .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:#ffffffcc;border-radius:2px;pointer-events:none}
@@ -49,6 +50,24 @@
     background:#ffffffee;
     box-shadow:0 0 6px rgba(255,255,255,.35);
   }
+  .markA::after,
+  .markB::after{
+    content:"";
+    position:absolute;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#ffffffee;
+    box-shadow:0 0 6px rgba(255,255,255,.35);
+    left:50%;
+    transform:translateX(-50%);
+  }
+  .markA::after{
+    top:10%;
+  }
+  .markB::after{
+    bottom:10%;
+  }
   .mark.show{opacity:1}
 
   .ab-range{
@@ -63,6 +82,7 @@
     opacity:0
   }
   .ab-range.show{opacity:1}
+  .ab-range.loop-active{filter:blur(2px);}
 
   .info{position:absolute;right:12px;top:12px;z-index:25;max-width:min(92vw,520px);background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);padding:12px 14px;border-radius:12px;backdrop-filter:blur(4px);display:none;line-height:1.35}
   .info h3{margin:.2rem 0 .6rem;font-size:14px;opacity:.95}
@@ -71,29 +91,29 @@
 
   .vol-pop{
     position:absolute;
-    bottom:52px;
-    left:50%;
-    transform:translateX(-50%);
+    top:50%;
+    left:100%;
+    transform:translate(8px,-50%);
     z-index:15;
-    background:rgba(0,0,0,.5);
-    border:1px solid rgba(255,255,255,.3);
+    background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.25);
     border-radius:10px;
-    padding:4px;
+    padding:8px 10px;
     display:none;
     backdrop-filter:blur(4px);
     align-items:center;
     justify-content:center;
-    flex-direction:column;
-    width:40px;
+    flex-direction:row;
+    width:auto;
+    min-width:120px;
   }
   .vol-pop input[type=range]{
     width:120px;
     appearance:none;
     background:transparent;
-    transform:rotate(-90deg);
   }
   .vol-pop input[type=range]::-webkit-slider-runnable-track{
-    height:1px;
+    height:2px;
     background:#ffffff66;
     border-radius:4px
   }
@@ -106,7 +126,7 @@
     box-shadow:0 0 0 2px rgba(255,255,255,.35)
   }
   .vol-pop input[type=range]::-moz-range-track{
-    height:1px;
+    height:2px;
     background:#ffffff66;
     border-radius:4px
   }
@@ -117,7 +137,8 @@
     border:none
   }
 
-  .btn[data-tip]::before{
+  .btn[data-tip]::before,
+  .mark[data-tip]::before{
     content:attr(data-tip);
     position:absolute;
     bottom:48px;
@@ -133,7 +154,8 @@
     pointer-events:none;
     transition:opacity .12s ease-out;
   }
-  .btn[data-tip]:hover::before{
+  .btn[data-tip]:hover::before,
+  .mark[data-tip]:hover::before{
     opacity:1;
   }
 
@@ -143,6 +165,8 @@
 
 <div class="brand">CursoPlayerWeb — © 2025 Fran Falcón</div>
 
+<div id="bgFrame" class="bg-frame"></div>
+
 <input id="file" type="file" accept="video/*">
 <video id="vid" playsinline></video>
 
@@ -151,8 +175,8 @@
     <div class="trail" id="trail"></div>
     <div class="ab-range" id="abRange"></div>
     <div class="track"></div>
-    <div class="mark" id="markA" title="A"></div>
-    <div class="mark" id="markB" title="B"></div>
+    <div class="mark markA" id="markA" data-tip="Marca A"></div>
+    <div class="mark markB" id="markB" data-tip="Marca B"></div>
     <div class="dot" id="dot"></div>
   </div>
 </div>
@@ -186,12 +210,6 @@
     </svg>
   </div>
 
-  <div class="btn" id="fs" data-tip="Pantalla completa">
-    <svg viewBox="0 0 24 24">
-      <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
-    </svg>
-  </div>
-
   <div class="btn" id="mirror" data-tip="Espejo">
     <svg viewBox="0 0 24 24">
       <path d="M2 7h20M2 17h20"/>
@@ -213,17 +231,9 @@
     </svg>
   </div>
 
-  <div class="btn" id="markA_btn" data-tip="Marca A">
+  <div class="btn" id="fs" data-tip="Pantalla completa">
     <svg viewBox="0 0 24 24">
-      <rect x="4" y="4" width="16" height="16" rx="3" ry="3"/>
-      <text x="12" y="16" text-anchor="middle" font-size="10" fill="#fff" stroke="none" font-weight="700">A</text>
-    </svg>
-  </div>
-
-  <div class="btn" id="markB_btn" data-tip="Marca B">
-    <svg viewBox="0 0 24 24">
-      <rect x="4" y="4" width="16" height="16" rx="3" ry="3"/>
-      <text x="12" y="16" text-anchor="middle" font-size="10" fill="#fff" stroke="none" font-weight="700">B</text>
+      <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
     </svg>
   </div>
 
@@ -257,6 +267,7 @@
 const vid = document.querySelector("#vid");
 const file = document.querySelector("#file");
 const seek = document.querySelector("#seek");
+const bgFrame = document.querySelector("#bgFrame");
 const inner = document.querySelector("#seekInner");
 const trail = document.querySelector("#trail");
 const dot = document.querySelector("#dot");
@@ -269,8 +280,6 @@ const playBtn   = document.querySelector("#play");
 const playShape = document.querySelector("#playShape");
 const mirrorBtn = document.querySelector("#mirror");
 const loopBtn   = document.querySelector("#loop");
-const markABtn  = document.querySelector("#markA_btn");
-const markBBtn  = document.querySelector("#markB_btn");
 const clearABBtn= document.querySelector("#clearAB");
 const rateLabel = document.querySelector("#rateLabel");
 const speedDownBtn = document.querySelector("#speedDown");
@@ -292,7 +301,28 @@ let currentFile = null;
 // anti guardado básico
 document.addEventListener("contextmenu",(e)=>e.preventDefault(),{passive:false});
 document.addEventListener("keydown",(e)=>{
-  if((e.ctrlKey||e.metaKey) && (["s","p","u","S","P","U"].includes(e.key))){e.preventDefault();}
+  // Bloqueo de atajos de guardado/impresión
+  if((e.ctrlKey||e.metaKey) && (["s","p","u","S","P","U"].includes(e.key))){
+    e.preventDefault();
+    return;
+  }
+  // Flechas izquierda/derecha: desplazamiento de 10 segundos
+  if(e.key === "ArrowLeft"){
+    e.preventDefault();
+    seekRelative(-10);
+    return;
+  }
+  if(e.key === "ArrowRight"){
+    e.preventDefault();
+    seekRelative(10);
+    return;
+  }
+  // F11: pantalla completa usando la misma lógica que el botón
+  if(e.key === "F11"){
+    e.preventDefault();
+    toggleFS();
+    return;
+  }
 },{passive:false});
 
 function pulse(el){
@@ -411,8 +441,7 @@ vid.addEventListener("pause",()=>{
 // Pantalla completa + estado activo
 fsBtn.onclick=()=>{
   pulse(fsBtn);
-  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
-  else document.exitFullscreen();
+  toggleFS();
 };
 document.addEventListener("fullscreenchange",()=>{
   fsBtn.classList.toggle("active", !!document.fullscreenElement);
@@ -446,30 +475,28 @@ rateLabel.onclick=()=>{
   updateRateUI();
 };
 
-// Marcas A y B
-markABtn.onclick=()=>{
-  A = vid.currentTime;
-  markABtn.classList.add("active");
-  pulse(markABtn);
-  updateMarks();
-};
-markBBtn.onclick=()=>{
-  B = vid.currentTime;
-  markBBtn.classList.add("active");
-  pulse(markBBtn);
-  updateMarks();
-};
+// Marcas A y B automáticas via botón de bucle
 clearABBtn.onclick=()=>{
   A=null;B=null;
+  loopAB=false;
+  loopBtn.classList.remove("active");
+  abRange.classList.remove("loop-active");
   pulse(clearABBtn);
-  markABtn.classList.remove("active");
-  markBBtn.classList.remove("active");
   updateMarks();
+  updateProgressUI();
 };
 loopBtn.onclick=()=>{
+  if(vid.duration && isFinite(vid.duration)){
+    A = vid.duration * 0.33;
+    B = vid.duration * 0.66;
+    vid.currentTime = A;
+  }
   loopAB=!loopAB;
   loopBtn.classList.toggle("active",loopAB);
+  abRange.classList.toggle("loop-active", loopAB);
   pulse(loopBtn);
+  updateMarks();
+  updateProgressUI();
 };
 
 // Volumen
@@ -483,9 +510,59 @@ volRange.addEventListener("input",(e)=>{
   vid.volume = +e.target.value;
   updateVolumeUI();
 });
+volRange.addEventListener("pointerdown",(e)=>{
+  const rect = volRange.getBoundingClientRect();
+  let x = Math.max(rect.left, Math.min(e.clientX, rect.right));
+  const ratio = (x - rect.left) / rect.width;
+  const min = parseFloat(volRange.min);
+  const max = parseFloat(volRange.max);
+  let val = min + ratio * (max - min);
+  if(val < min) val = min;
+  if(val > max) val = max;
+  volRange.value = val;
+  vid.volume = val;
+  updateVolumeUI();
+});
 document.addEventListener("click",(e)=>{
   if(!volumeBtn.contains(e.target)) volPop.style.display="none";
 });
+
+volPop.addEventListener("wheel",(e)=>{
+  e.preventDefault();
+  const step = 0.05;
+  let v = vid.volume;
+  if(e.deltaY < 0) v += step;
+  else if(e.deltaY > 0) v -= step;
+  if(v < 0) v = 0;
+  if(v > 1) v = 1;
+  vid.volume = v;
+  volRange.value = v;
+  updateVolumeUI();
+},{passive:false});
+
+function seekRelative(delta){
+  if(!(vid.duration && isFinite(vid.duration))) return;
+  let t = vid.currentTime + delta;
+  if(t < 0) t = 0;
+  if(vid.duration && isFinite(vid.duration) && t > vid.duration) t = vid.duration;
+
+  // Si el bucle A-B está activo y salimos del rango, volvemos a A
+  if(loopAB && A!=null && B!=null){
+    const a = Math.min(A,B);
+    const b = Math.max(A,B);
+    if(t < a || t > b){
+      t = A;
+    }
+  }
+
+  vid.currentTime = t;
+  updateProgressUI();
+}
+
+function toggleFS(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+}
 
 function pct(){
   if(!vid.duration || !isFinite(vid.duration)) return 0;
@@ -524,9 +601,6 @@ function updateMarks(){
   }else{
     abRange.classList.remove("show");
   }
-
-  // Botón Desmarcar activo cuando NO haya marcas
-  clearABBtn.classList.toggle("active", A==null && B==null);
 }
 
 function updateProgressUI(){
@@ -542,11 +616,47 @@ vid.addEventListener("timeupdate",()=>{
   }
   updateProgressUI();
 });
+function maybeGenerateBackground(){
+  if(!(vid.videoWidth && vid.videoHeight && vid.duration && isFinite(vid.duration))) return;
+  const videoRatio = vid.videoWidth / vid.videoHeight;
+  const windowRatio = window.innerWidth / window.innerHeight;
+  const hasBars = Math.abs(videoRatio - windowRatio) > 0.05;
+  if(!hasBars) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = vid.videoWidth;
+  canvas.height = vid.videoHeight;
+  const ctx = canvas.getContext("2d");
+
+  const originalTime = vid.currentTime;
+  const wasPaused = vid.paused;
+
+  function onSeeked(){
+    try{
+      ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+      const url = canvas.toDataURL("image/jpeg", 0.9);
+      bgFrame.style.backgroundImage = `url(${url})`;
+      bgFrame.style.opacity = "1";
+    }catch(err){
+      console.error("No se pudo generar fondo difuminado:", err);
+    }finally{
+      vid.removeEventListener("seeked", onSeeked);
+      vid.currentTime = originalTime;
+      if(!wasPaused) vid.play();
+    }
+  }
+
+  vid.addEventListener("seeked", onSeeked);
+  vid.pause();
+  vid.currentTime = vid.duration / 2;
+}
+
 vid.addEventListener("loadedmetadata",()=>{
   rate = 1;
   vid.playbackRate = 1;
   updateRateUI();
   updateProgressUI();
+  maybeGenerateBackground();
 });
 window.addEventListener("resize",updateProgressUI);
 
@@ -555,9 +665,21 @@ function setTimeFromClientX(clientX){
   const r = inner.getBoundingClientRect();
   let x = Math.max(r.left,Math.min(clientX,r.right));
   const frac = (x-r.left)/r.width;
-  if(vid.duration && isFinite(vid.duration)){
-    vid.currentTime = frac*vid.duration;
+  if(!(vid.duration && isFinite(vid.duration))){
+    return;
   }
+  const candidate = frac * vid.duration;
+
+  if(loopAB && A!=null && B!=null){
+    const a = Math.min(A,B);
+    const b = Math.max(A,B);
+    // Si el clic está fuera de A-B, se ignora
+    if(candidate < a || candidate > b){
+      return;
+    }
+  }
+
+  vid.currentTime = candidate;
   updateProgressUI();
 }
 seek.addEventListener("pointerdown",(e)=>{
@@ -596,6 +718,14 @@ function onMarkPointerUp(e){
   if(!draggingMark) return;
   e.currentTarget.releasePointerCapture(e.pointerId);
   draggingMark=null;
+  if(loopAB && A!=null && B!=null){
+    const a = Math.min(A,B);
+    const b = Math.max(A,B);
+    if(vid.currentTime < a || vid.currentTime > b){
+      vid.currentTime = A;
+      updateProgressUI();
+    }
+  }
 }
 ["pointerdown"].forEach(ev=>{
   markAEl.addEventListener(ev,(e)=>onMarkPointerDown(e,"A"));
