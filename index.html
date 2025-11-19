@@ -3,12 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CursoPlayer Minimal</title>
+<title>CursoPlayer Minimal (Rev 23)</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
   .bg-frame{position:fixed;inset:0;z-index:-1;background:#000 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
   .brand{position:absolute;top:10px;left:12px;z-index:20;color:#fff;font-size:12px;opacity:.85;letter-spacing:.2px;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:8px;user-select:none;pointer-events:none}
+.file-name{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:20;
+  color:#fff;
+  font-size:12px;
+  opacity:.92;
+  background:rgba(0,0,0,.35);
+  padding:4px 12px;
+  border-radius:999px;
+  max-width:60vw;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
   .ctrls{position:absolute;bottom:12vh;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:1rem;pointer-events:auto;z-index:10}
   .btn{min-width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.25);position:relative;color:#fff}
   .btn:hover{background:rgba(255,255,255,.28)}
@@ -20,21 +37,19 @@
   .pulse::after{content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 3px rgba(255,255,255,.6);animation:pulse .18s ease-out forwards}
   @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.15)}}
 
-
   .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer}
   .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px}
   .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:#ffffffcc;border-radius:2px;pointer-events:none}
   .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:rgba(255,255,255,.35);border-radius:6px;width:0%;pointer-events:none}
   .dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);left:0%;pointer-events:none}
 
+  /* Marcas A y B: líneas verticales sobre la línea de tiempo */
   .mark{
     position:absolute;
-    top:50%;
-    transform:translate(-50%,-50%);
-    width:24px;
-    height:24px;
-    border-radius:4px;
-    background:transparent;
+    top:50%;                 /* centrado vertical sobre la barra de tiempo */
+    transform:translateX(-50%);
+    width:0;
+    height:0;
     pointer-events:auto;
     cursor:default;
     opacity:0;
@@ -42,47 +57,73 @@
   .mark::before{
     content:"";
     position:absolute;
-    top:50%;left:50%;
+    left:50%;
+    top:50%;
     transform:translate(-50%,-50%);
     width:2px;
-    height:14px;
+    height:22px;             /* longitud total de la marca vertical */
+    background:#ffffffee;
     border-radius:2px;
-    background:#ffffffee;
     box-shadow:0 0 6px rgba(255,255,255,.35);
-  }
-  .markA::after,
-  .markB::after{
-    content:"";
-    position:absolute;
-    width:8px;
-    height:8px;
-    border-radius:50%;
-    background:#ffffffee;
-    box-shadow:0 0 6px rgba(255,255,255,.35);
-    left:50%;
-    transform:translateX(-50%);
-  }
-  .markA::after{
-    top:10%;
-  }
-  .markB::after{
-    bottom:10%;
   }
   .mark.show{opacity:1}
+  .mark-label{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    padding:4px 8px;
+    font-size:11px;
+    background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:10px;
+    color:#fff;
+    white-space:nowrap;
+    backdrop-filter:blur(4px);
+    box-shadow:0 0 8px rgba(0,0,0,.35);
+  }
 
-  .ab-range{
+    .mark-labelA{
+    top: 10px;     /* bocadillo A: pegado a la marca por debajo */
+  }
+
+  .mark-labelB{
+    top: -34px;    /* bocadillo B: encima de la línea de tiempo */
+  }
+
+.time-label{
+    position:absolute;
+    padding:4px 8px;
+    font-size:11px;
+    background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:10px;
+    color:#fff;
+    white-space:nowrap;
+    backdrop-filter:blur(4px);
+    box-shadow:0 0 8px rgba(0,0,0,.35);
+  }
+  .time-label-start{
+    left:0;
+    top:-21px;    /* bocadillo inicio: bajo la línea de tiempo, al inicio */
+  }
+  .time-label-end{
+    right:0;
+    top:24px;    /* bocadillo final: bajo la línea de tiempo, al final */
+  }
+
+.ab-range{
     position:absolute;
     top:50%;
     transform:translateY(-50%);
-    height:16px;
-    background:rgba(255,255,255,.72);
+    height:8px;
+    background:rgba(255,255,255,.58);
     border-radius:8px;
     left:0;width:0;
     pointer-events:none;
     opacity:0
   }
   .ab-range.show{opacity:1}
-  .ab-range.loop-active{filter:blur(2px);}
+  .ab-range.loop-active{filter:blur(3px);}
 
   .info{position:absolute;right:12px;top:12px;z-index:25;max-width:min(92vw,520px);background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);padding:12px 14px;border-radius:12px;backdrop-filter:blur(4px);display:none;line-height:1.35}
   .info h3{margin:.2rem 0 .6rem;font-size:14px;opacity:.95}
@@ -137,8 +178,8 @@
     border:none
   }
 
-  .btn[data-tip]::before,
-  .mark[data-tip]::before{
+  /* Tooltips de botones (negros, como antes) */
+  .btn[data-tip]::before{
     content:attr(data-tip);
     position:absolute;
     bottom:48px;
@@ -154,16 +195,19 @@
     pointer-events:none;
     transition:opacity .12s ease-out;
   }
-  .btn[data-tip]:hover::before,
-  .mark[data-tip]:hover::before{
+  .btn[data-tip]:hover::before{
     opacity:1;
   }
+
+    /* Información de marcas integrada en los triángulos (mark-label) */
 
 </style>
 </head>
 <body>
 
 <div class="brand">CursoPlayerWeb — © 2025 Fran Falcón</div>
+
+<div class="file-name" id="fileNameLabel">Sin archivo</div>
 
 <div id="bgFrame" class="bg-frame"></div>
 
@@ -175,9 +219,11 @@
     <div class="trail" id="trail"></div>
     <div class="ab-range" id="abRange"></div>
     <div class="track"></div>
-    <div class="mark markA" id="markA" data-tip="Marca A"></div>
-    <div class="mark markB" id="markB" data-tip="Marca B"></div>
+    <div class="mark markA" id="markA"></div>
+    <div class="mark markB" id="markB"></div>
     <div class="dot" id="dot"></div>
+    <div class="time-label time-label-start" id="timeStartLabel">00:00:00.0</div>
+    <div class="time-label time-label-end" id="timeEndLabel">00:00:00.0</div>
   </div>
 </div>
 
@@ -193,6 +239,15 @@
     <svg viewBox="0 0 24 24">
       <path d="M3 7h5l2 3h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
       <path d="M3 7V5a2 2 0 0 1 2-2h5l2 2"/>
+    </svg>
+  </div>
+
+  <div class="btn" id="zoomBtn" data-tip="Zoom">
+    <svg viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="5"/>
+      <path d="M16 16l4 4"/>
+      <path d="M11 8v6"/>
+      <path d="M8 11h6"/>
     </svg>
   </div>
 
@@ -274,6 +329,15 @@ const dot = document.querySelector("#dot");
 const markAEl = document.querySelector("#markA");
 const markBEl = document.querySelector("#markB");
 const abRange = document.querySelector("#abRange");
+const timeStartLabel = document.querySelector("#timeStartLabel");
+const timeEndLabel = document.querySelector("#timeEndLabel");
+const markALabel = document.createElement("div");
+markALabel.className = "mark-label mark-labelA";
+markAEl.appendChild(markALabel);
+const markBLabel = document.createElement("div");
+markBLabel.className = "mark-label mark-labelB";
+markBEl.appendChild(markBLabel);
+
 
 const openBtn   = document.querySelector("#open");
 const playBtn   = document.querySelector("#play");
@@ -294,6 +358,8 @@ const volRange  = document.querySelector("#volRange");
 const fsBtn     = document.querySelector("#fs");
 
 let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
+let zoomLevel = 1;
+const MIN_AB_GAP = 0.2; // separación mínima en segundos entre A y B
 let isSeeking=false;
 let draggingMark = null;
 let currentFile = null;
@@ -343,17 +409,69 @@ function updateVolumeUI(){
   volumeBtn.classList.toggle("active", vid.volume > 0);
 }
 
+function applyVideoTransform(){
+  if(isMirrored){
+    vid.style.transform = `scale(${-zoomLevel}, ${zoomLevel})`;
+  }else{
+    vid.style.transform = `scale(${zoomLevel})`;
+  }
+}
+
+function updateZoomUI(){
+  zoomBtn.classList.toggle("active", Math.abs(zoomLevel-1) > 0.001);
+  applyVideoTransform();
+}
+
+function updateTimeLabels(){
+  const cur = vid.currentTime || 0;
+  const total = (vid.duration && isFinite(vid.duration)) ? vid.duration : 0;
+  if(timeStartLabel) timeStartLabel.textContent = formatTimeWithTenths(cur);
+  if(timeEndLabel)   timeEndLabel.textContent   = formatTimeWithTenths(total);
+}
+
+function updateLoopBtnState(){
+  const hasMarks = (A != null && B != null);
+  loopBtn.classList.toggle("active", hasMarks);
+}
+
+/* Formato de tiempo: hh:mm:ss.d (décima) */
+function formatTimeWithTenths(t){
+  if(t == null || !isFinite(t)) return "";
+  const total = Math.max(0, t);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = Math.floor(total % 60);
+  const tenths = Math.floor((total - Math.floor(total)) * 10);
+  return String(hours).padStart(2,"0") + ":" +
+         String(minutes).padStart(2,"0") + ":" +
+         String(seconds).padStart(2,"0") + "." +
+         tenths;
+}
+
 /* Abrir archivo: activo mientras está el diálogo */
 openBtn.onclick = ()=>{
   pulse(openBtn);
   openBtn.classList.add("active");
   file.click();
 };
+
+zoomBtn.onclick = ()=>{
+  pulse(zoomBtn);
+  // ciclo de zoom: 1 -> 1.25 -> 1.5 -> 2 -> 1 ...
+  const levels = [1, 1.25, 1.5, 2];
+  const currentIndex = levels.findIndex(v => Math.abs(v - zoomLevel) < 0.001);
+  const nextIndex = (currentIndex + 1) % levels.length;
+  zoomLevel = levels[nextIndex];
+  updateZoomUI();
+};
 file.onchange = e=>{
   openBtn.classList.remove("active");
   const f = e.target.files[0];
   if(f){
     currentFile = f;
+    if(fileNameLabel){
+      fileNameLabel.textContent = currentFile.name || "(archivo local)";
+    }
     vid.src = URL.createObjectURL(f);
     vid.play();
     setTimeout(updateInfoMeta,200);
@@ -382,13 +500,10 @@ function human(n){
 function updateInfoMeta(){
   const lines=[];
   if(currentFile){
-    const ruta = (currentFile.webkitRelativePath || currentFile.name || "(archivo local)");
-    lines.push("Ruta: " + ruta);
     lines.push("Nombre: "+(currentFile.name||"(desconocido)"));
     lines.push("Tamaño: "+human(currentFile.size||0));
     if(currentFile.lastModified) lines.push("Modificado: "+new Date(currentFile.lastModified).toLocaleString());
   }else{
-    lines.push("Ruta: —");
     lines.push("Nombre: —");
     lines.push("Tamaño: —");
     lines.push("Modificado: —");
@@ -450,9 +565,9 @@ document.addEventListener("fullscreenchange",()=>{
 // Espejo
 mirrorBtn.onclick=()=>{
   isMirrored = !isMirrored;
-  vid.style.transform = isMirrored ? "scaleX(-1)" : "";
   mirrorBtn.classList.toggle("active", isMirrored);
   pulse(mirrorBtn);
+  applyVideoTransform();
 };
 
 // Velocidad
@@ -479,23 +594,27 @@ rateLabel.onclick=()=>{
 clearABBtn.onclick=()=>{
   A=null;B=null;
   loopAB=false;
-  loopBtn.classList.remove("active");
   abRange.classList.remove("loop-active");
   pulse(clearABBtn);
   updateMarks();
+  updateLoopBtnState();
   updateProgressUI();
 };
 loopBtn.onclick=()=>{
+  // Si las marcas ya están establecidas, no hacer nada
+  if(A != null && B != null){
+    return;
+  }
   if(vid.duration && isFinite(vid.duration)){
     A = vid.duration * 0.33;
     B = vid.duration * 0.66;
     vid.currentTime = A;
   }
-  loopAB=!loopAB;
-  loopBtn.classList.toggle("active",loopAB);
-  abRange.classList.toggle("loop-active", loopAB);
+  loopAB = true;
+  abRange.classList.add("loop-active");
   pulse(loopBtn);
   updateMarks();
+  updateLoopBtnState();
   updateProgressUI();
 };
 
@@ -580,18 +699,28 @@ function pctToTime(p){
 }
 
 function updateMarks(){
+  // Posición visual
   if(A!=null){
     markAEl.style.left = timeToPct(A)+"%";
     markAEl.classList.add("show");
+    const labelA = formatTimeWithTenths(A);
+    markALabel.textContent = labelA || "";
   }else{
     markAEl.classList.remove("show");
+    markALabel.textContent = "";
   }
+
   if(B!=null){
     markBEl.style.left = timeToPct(B)+"%";
     markBEl.classList.add("show");
+    const labelB = formatTimeWithTenths(B);
+    markBLabel.textContent = labelB || "";
   }else{
     markBEl.classList.remove("show");
+    markBLabel.textContent = "";
   }
+
+  // Rango A-B
   if(A!=null && B!=null){
     const a=Math.min(A,B), b=Math.max(A,B);
     const left=timeToPct(a), right=timeToPct(b);
@@ -601,6 +730,7 @@ function updateMarks(){
   }else{
     abRange.classList.remove("show");
   }
+  updateLoopBtnState();
 }
 
 function updateProgressUI(){
@@ -608,6 +738,7 @@ function updateProgressUI(){
   trail.style.width = p+"%";
   dot.style.left = p+"%";
   updateMarks();
+  updateTimeLabels();
 }
 
 vid.addEventListener("timeupdate",()=>{
@@ -656,6 +787,7 @@ vid.addEventListener("loadedmetadata",()=>{
   vid.playbackRate = 1;
   updateRateUI();
   updateProgressUI();
+  updateTimeLabels();
   maybeGenerateBackground();
 });
 window.addEventListener("resize",updateProgressUI);
@@ -696,7 +828,7 @@ seek.addEventListener("pointerup",(e)=>{
 });
 seek.addEventListener("pointercancel",()=>{isSeeking=false;});
 
-/* Arrastre de marcas A y B con zona de marcación ampliada */
+/* Arrastre de marcas A y B con zona de marcación */
 function onMarkPointerDown(e,which){
   if(!(vid.duration && isFinite(vid.duration))) return;
   e.stopPropagation();
@@ -709,9 +841,29 @@ function onMarkPointerMove(e){
   const r = inner.getBoundingClientRect();
   let x = Math.max(r.left,Math.min(e.clientX,r.right));
   const p = ((x-r.left)/r.width)*100;
-  const t = pctToTime(p);
-  if(draggingMark==="A") A = t;
-  if(draggingMark==="B") B = t;
+  let t = pctToTime(p);
+
+  if(!(vid.duration && isFinite(vid.duration))) return;
+  // Aseguramos que el tiempo esté dentro del rango del vídeo
+  if(t < 0) t = 0;
+  if(t > vid.duration) t = vid.duration;
+
+  if(draggingMark==="A"){
+    // A nunca puede superar a B - MIN_AB_GAP
+    if(B != null){
+      const maxA = B - MIN_AB_GAP;
+      if(t > maxA) t = Math.max(0, maxA);
+    }
+    A = t;
+  }
+  if(draggingMark==="B"){
+    // B nunca puede ser inferior a A + MIN_AB_GAP
+    if(A != null){
+      const minB = A + MIN_AB_GAP;
+      if(t < minB) t = Math.min(vid.duration, minB);
+    }
+    B = t;
+  }
   updateMarks();
 }
 function onMarkPointerUp(e){
