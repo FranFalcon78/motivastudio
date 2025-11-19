@@ -3,73 +3,331 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CursoPlayerWeb</title>
+<title>CursoPlayer Minimal (Rev 23)</title>
 <style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
-  video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-  .bg-frame{position:fixed;inset:0;z-index:-1;background:#000 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
-  .brand{position:absolute;top:10px;left:12px;z-index:20;color:#fff;font-size:12px;opacity:.85;letter-spacing:.2px;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:8px;user-select:none;pointer-events:none}
-.file-name{
-  position:absolute;
-  top:10px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:20;
-  color:#fff;
-  font-size:12px;
-  opacity:.92;
-  background:rgba(0,0,0,.35);
-  padding:4px 12px;
-  border-radius:999px;
-  max-width:60vw;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
+  /* === Nuevo diseño para CursoPlayerWeb (prueba de 39) === */
+  :root{
+    --bg-main:#050816;
+    --bg-alt:#0b1121;
+    --accent:#38bdf8;
+    --accent-soft:rgba(56,189,248,.18);
+    --accent-strong:rgba(56,189,248,.85);
+    --text-primary:#e5e7eb;
+    --text-muted:#9ca3af;
+    --border-soft:rgba(148,163,184,.4);
+    --danger:#fb7185;
+  }
+
+  html,body{
+    margin:0;
+    height:100%;
+    background:radial-gradient(circle at top,#020617,#020617 40%,#000 100%);
+    overflow:hidden;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--text-primary);
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:-40%;
+    background:
+      radial-gradient(circle at 10% 0%,rgba(56,189,248,.08),transparent 55%),
+      radial-gradient(circle at 90% 100%,rgba(248,250,252,.06),transparent 55%);
+    opacity:.9;
+    pointer-events:none;
+    z-index:-2;
+  }
+
+  video{
+    position:absolute;
+    inset:0;
+    max-width:100%;
+    max-height:100%;
+    margin:auto;
+    object-fit:contain;
+    background:#000;
+    z-index:1;
+    box-shadow:0 40px 80px rgba(15,23,42,.9);
+    border-radius:24px;
+  }
+
+  .bg-frame{
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background:#020617 center/cover no-repeat;
+    filter:blur(22px) saturate(1.4);
+    opacity:0;
+    transition:opacity .45s ease-out;
+  }
+
+  .brand{
+    position:absolute;
+    top:18px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:20;
+    padding:6px 16px;
+    border-radius:999px;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    background:linear-gradient(90deg,rgba(15,23,42,.9),rgba(15,23,42,.4));
+    border:1px solid rgba(148,163,184,.55);
+    color:var(--text-muted);
+    backdrop-filter:blur(10px);
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .brand::before{
+    content:"●";
+    font-size:10px;
+    color:var(--accent);
+  }
+
+  .file-name{
+    position:absolute;
+    top:46px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:20;
+    padding:4px 14px;
+    border-radius:999px;
+    font-size:12px;
+    background:rgba(15,23,42,.85);
+    border:1px solid var(--border-soft);
+    color:var(--text-primary);
+    max-width:70vw;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    box-shadow:0 10px 25px rgba(15,23,42,.9);
+  }
+
+  input[type=file]{display:none}
+
+  /* === Controles principales: dock inferior === */
+
   .ctrls{
     position:absolute;
-    bottom:12vh;
-    left:0;
-    right:0;
+    left:50%;
+    bottom:26px;
+    transform:translateX(-50%);
+    z-index:30;
+    pointer-events:auto;
     display:flex;
     flex-direction:column;
-    justify-content:center;
     align-items:center;
     gap:10px;
-    pointer-events:auto;
-    z-index:10;
   }
+
+  .ctrls::before{
+    content:"";
+    position:absolute;
+    inset:-12px -20px;
+    border-radius:999px;
+    background:radial-gradient(circle at top,var(--bg-alt),#020617);
+    border:1px solid rgba(30,64,175,.9);
+    box-shadow:
+      0 24px 60px rgba(15,23,42,.95),
+      0 0 0 1px rgba(15,23,42,.8),
+      0 0 30px rgba(56,189,248,.35);
+    opacity:.96;
+    z-index:-1;
+    backdrop-filter:blur(18px);
+  }
+
   .ctrl-row{
     display:flex;
-    justify-content:center;
     align-items:center;
-    gap:.8rem;
+    justify-content:center;
+    gap:10px;
   }
-  .btn{min-width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.25);position:relative;color:#fff}
-  .btn:hover{background:rgba(255,255,255,.28)}
-  .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
-  .btn--text{min-width:72px;width:auto;padding:0 .6rem;border-radius:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;opacity:.95;text-align:center;cursor:pointer}
-  .active{box-shadow:0 0 0 2px rgba(255,255,255,.55) inset,0 0 12px rgba(255,255,255,.35)}
-  .active svg{opacity:1}
-  input[type=file]{display:none}
-  .pulse::after{content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 3px rgba(255,255,255,.6);animation:pulse .18s ease-out forwards}
-  @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.15)}}
 
-  .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer}
-  .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px}
-  .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:#ffffffcc;border-radius:2px;pointer-events:none}
-  .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:rgba(255,255,255,.35);border-radius:6px;width:0%;pointer-events:none}
-  .dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);left:0%;pointer-events:none}
+  .btn{
+    min-width:40px;
+    height:40px;
+    border-radius:14px;
+    background:radial-gradient(circle at 0 0,rgba(248,250,252,.16),rgba(15,23,42,.95));
+    border:1px solid rgba(148,163,184,.4);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:
+      background .18s ease-out,
+      border-color .18s ease-out,
+      transform .12s ease-out,
+      box-shadow .18s ease-out;
+    position:relative;
+    color:var(--text-primary);
+    box-shadow:0 8px 18px rgba(15,23,42,.9);
+  }
 
-  /* Marcas A y B: líneas verticales sobre la línea de tiempo */
+  .btn svg{
+    width:22px;
+    height:22px;
+    stroke:#e5e7eb;
+    fill:none;
+    stroke-width:2;
+    opacity:.95;
+  }
+
+  .btn:hover{
+    background:radial-gradient(circle at 0 0,rgba(248,250,252,.2),rgba(15,23,42,.9));
+    border-color:var(--accent-strong);
+    transform:translateY(-1px);
+    box-shadow:0 10px 24px rgba(15,23,42,1);
+  }
+
+  .btn:active{
+    transform:translateY(1px) scale(.98);
+    box-shadow:0 4px 10px rgba(15,23,42,.85);
+  }
+
+  .btn--text{
+    min-width:86px;
+    padding:0 10px;
+    height:32px;
+    border-radius:999px;
+    font-size:13px;
+    background:linear-gradient(90deg,rgba(15,23,42,.9),rgba(15,23,42,.7));
+    border:1px solid rgba(148,163,184,.5);
+    box-shadow:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .btn--text:hover{
+    background:linear-gradient(90deg,rgba(15,23,42,1),rgba(15,23,42,.85));
+    border-color:var(--accent-strong);
+  }
+
+  .active{
+    box-shadow:
+      0 0 0 1px rgba(15,23,42,1),
+      0 0 0 2px rgba(56,189,248,.6),
+      0 0 25px rgba(56,189,248,.55);
+    background:radial-gradient(circle at 0 0,var(--accent-soft),rgba(15,23,42,.96));
+    border-color:var(--accent-strong);
+  }
+  .active svg{
+    stroke:#f9fafb;
+    opacity:1;
+  }
+
+  .pulse::after{
+    content:"";
+    position:absolute;
+    inset:-3px;
+    border-radius:inherit;
+    box-shadow:0 0 0 1px rgba(56,189,248,.9);
+    animation:pulse .18s ease-out forwards;
+  }
+
+  @keyframes pulse{
+    from{opacity:1;transform:scale(1);}
+    to{opacity:0;transform:scale(1.12);}
+  }
+
+  /* Tooltips */
+  .btn[data-tip]::before{
+    content:attr(data-tip);
+    position:absolute;
+    bottom:46px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(15,23,42,.95);
+    color:#e5e7eb;
+    font-size:11px;
+    padding:4px 7px;
+    border-radius:7px;
+    white-space:nowrap;
+    box-shadow:0 10px 28px rgba(15,23,42,1);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .12s ease-out, transform .12s ease-out;
+    border:1px solid rgba(30,64,175,.9);
+  }
+  .btn[data-tip]:hover::before{
+    opacity:1;
+    transform:translateX(-50%) translateY(-2px);
+  }
+
+  /* === Barra de tiempo renovada === */
+
+  .seek{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    bottom:110px;
+    width:min(960px,86vw);
+    height:40px;
+    z-index:25;
+    cursor:pointer;
+  }
+
+  .seek-inner{
+    position:absolute;
+    inset:0;
+    border-radius:999px;
+    background:linear-gradient(90deg,rgba(15,23,42,.95),rgba(15,23,42,.85));
+    border:1px solid rgba(148,163,184,.45);
+    box-shadow:0 18px 40px rgba(15,23,42,.9);
+    padding:10px 18px;
+  }
+
+  .track{
+    position:absolute;
+    left:18px;
+    right:18px;
+    top:50%;
+    transform:translateY(-50%);
+    height:3px;
+    background:rgba(148,163,184,.55);
+    border-radius:999px;
+    pointer-events:none;
+  }
+
+  .trail{
+    position:absolute;
+    left:18px;
+    top:50%;
+    transform:translateY(-50%);
+    height:5px;
+    background:linear-gradient(90deg,var(--accent-strong),#f97316);
+    border-radius:999px;
+    width:0%;
+    pointer-events:none;
+    box-shadow:0 0 12px rgba(56,189,248,.7);
+  }
+
+  .dot{
+    position:absolute;
+    top:50%;
+    transform:translate(-50%,-50%);
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:#f9fafb;
+    box-shadow:
+      0 0 0 2px rgba(15,23,42,1),
+      0 0 0 4px rgba(56,189,248,.4),
+      0 0 24px rgba(56,189,248,.75);
+    left:18px;
+    pointer-events:none;
+  }
+
   .mark{
     position:absolute;
-    top:50%;                 /* centrado vertical sobre la barra de tiempo */
+    top:50%;
     transform:translateX(-50%);
     width:0;
     height:0;
     pointer-events:auto;
-    cursor:default;
     opacity:0;
   }
   .mark::before{
@@ -79,172 +337,189 @@
     top:50%;
     transform:translate(-50%,-50%);
     width:2px;
-    height:22px;             /* longitud total de la marca vertical */
-    background:#ffffffee;
-    border-radius:2px;
-    box-shadow:0 0 6px rgba(255,255,255,.35);
+    height:24px;
+    background:#e5e7eb;
+    border-radius:999px;
+    box-shadow:0 0 10px rgba(248,250,252,.9);
   }
-  .mark.show{opacity:1}
+  .mark.show{opacity:1;}
+
   .mark-label{
     position:absolute;
     left:50%;
     transform:translateX(-50%);
-    padding:4px 8px;
+    padding:3px 7px;
     font-size:11px;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:10px;
-    color:#fff;
+    border-radius:999px;
+    background:rgba(15,23,42,.96);
+    border:1px solid rgba(148,163,184,.6);
+    color:#e5e7eb;
     white-space:nowrap;
-    backdrop-filter:blur(4px);
-    box-shadow:0 0 8px rgba(0,0,0,.35);
+    backdrop-filter:blur(10px);
+    box-shadow:0 8px 18px rgba(15,23,42,1);
   }
+  .mark-labelA{top:24px;}
+  .mark-labelB{top:-30px;}
 
-    .mark-labelA{
-    top: 10px;     /* bocadillo A: pegado a la marca por debajo */
-  }
-
-  .mark-labelB{
-    top: -34px;    /* bocadillo B: encima de la línea de tiempo */
-  }
-
-.time-label{
+  .time-label{
     position:absolute;
-    padding:4px 8px;
+    padding:3px 8px;
     font-size:11px;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:10px;
-    color:#fff;
+    border-radius:999px;
+    background:rgba(15,23,42,.96);
+    border:1px solid rgba(148,163,184,.6);
+    color:#e5e7eb;
     white-space:nowrap;
-    backdrop-filter:blur(4px);
-    box-shadow:0 0 8px rgba(0,0,0,.35);
+    backdrop-filter:blur(10px);
+    box-shadow:0 10px 24px rgba(15,23,42,1);
   }
   .time-label-start{
-    left:0;
-    top:-21px;    /* bocadillo inicio: bajo la línea de tiempo, al inicio */
+    left:18px;
+    top:-28px;
   }
   .time-label-end{
-    right:0;
-    top:24px;    /* bocadillo final: bajo la línea de tiempo, al final */
+    right:18px;
+    top:28px;
   }
 
-.ab-range{
+  .ab-range{
     position:absolute;
     top:50%;
     transform:translateY(-50%);
-    height:8px;
-    background:rgba(255,255,255,.58);
-    border-radius:8px;
-    left:0;width:0;
+    height:10px;
+    background:rgba(56,189,248,.35);
+    border-radius:999px;
+    left:18px;
+    width:0;
     pointer-events:none;
-    opacity:0
+    opacity:0;
+    box-shadow:0 0 18px rgba(56,189,248,.7);
   }
-  .ab-range.show{opacity:1}
-  .ab-range.loop-active{filter:blur(3px);}
+  .ab-range.show{opacity:1;}
+  .ab-range.loop-active{
+    background:linear-gradient(90deg,rgba(56,189,248,.65),rgba(96,165,250,.8));
+  }
+
+  /* Panel de información renovado */
 
   .info{
     position:absolute;
-    top:50%;
     left:50%;
-    transform:translate(-50%,-50%);
-    z-index:25;
-    max-width:min(92vw,520px);
-    background:rgba(0,0,0,.55);
-    color:#fff;
-    border:1px solid rgba(255,255,255,.25);
-    padding:12px 14px;
-    border-radius:12px;
-    backdrop-filter:blur(4px);
+    top:13%;
+    transform:translateX(-50%);
+    z-index:40;
+    max-width:min(620px,90vw);
+    max-height:60vh;
+    background:radial-gradient(circle at top,rgba(15,23,42,.98),rgba(15,23,42,.96));
+    color:#e5e7eb;
+    border-radius:22px;
+    border:1px solid rgba(148,163,184,.7);
+    box-shadow:
+      0 30px 70px rgba(15,23,42,1),
+      0 0 0 1px rgba(15,23,42,.9);
+    padding:16px 20px;
+    backdrop-filter:blur(18px);
     display:none;
-    line-height:1.35;
+    line-height:1.4;
+    overflow-y:auto;
   }
-  .info h3{margin:.2rem 0 .6rem;font-size:14px;opacity:.95}
-  .info p{margin:.25rem 0;font-size:13px;opacity:.95;white-space:pre-line}
-  .hidden{display:none!important}
+
+  .info h3{
+    margin:.2rem 0 .4rem;
+    font-size:14px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+  }
+
+  .info p{
+    margin:.2rem 0;
+    font-size:13px;
+    color:var(--text-primary);
+    opacity:.95;
+    white-space:pre-line;
+  }
+
+  .info p#aboutMeta{
+    margin-top:.5rem;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+
+  .hidden{display:none!important;}
+
+  /* Volumen popup reestilizado */
 
   .vol-pop{
     position:absolute;
-    top:50%;
-    left:100%;
-    transform:translate(8px,-50%);
-    z-index:15;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:10px;
+    top:-54px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:35;
     padding:8px 10px;
+    border-radius:999px;
+    background:rgba(15,23,42,.98);
+    border:1px solid rgba(148,163,184,.7);
     display:none;
-    backdrop-filter:blur(4px);
-    align-items:center;
-    justify-content:center;
-    flex-direction:row;
-    width:auto;
-    min-width:120px;
+    backdrop-filter:blur(14px);
+    box-shadow:0 16px 40px rgba(15,23,42,1);
+  }
+  .vol-pop::before{
+    content:"";
+    position:absolute;
+    bottom:-6px;
+    left:50%;
+    transform:translateX(-50%) rotate(45deg);
+    width:10px;
+    height:10px;
+    background:rgba(15,23,42,.98);
+    border-left:1px solid rgba(148,163,184,.7);
+    border-bottom:1px solid rgba(148,163,184,.7);
   }
   .vol-pop input[type=range]{
-    width:120px;
+    width:150px;
     appearance:none;
     background:transparent;
   }
   .vol-pop input[type=range]::-webkit-slider-runnable-track{
-    height:2px;
-    background:#ffffff66;
-    border-radius:4px
+    height:3px;
+    background:rgba(148,163,184,.75);
+    border-radius:999px;
   }
   .vol-pop input[type=range]::-webkit-slider-thumb{
     appearance:none;
-    width:14px;height:14px;
+    width:14px;
+    height:14px;
     border-radius:50%;
-    background:#fff;
-    margin-top:-6px;
-    box-shadow:0 0 0 2px rgba(255,255,255,.35)
+    background:#f9fafb;
+    margin-top:-5px;
+    box-shadow:
+      0 0 0 2px rgba(15,23,42,1),
+      0 0 0 4px rgba(56,189,248,.6);
   }
   .vol-pop input[type=range]::-moz-range-track{
-    height:2px;
-    background:#ffffff66;
-    border-radius:4px
+    height:3px;
+    background:rgba(148,163,184,.75);
+    border-radius:999px;
   }
   .vol-pop input[type=range]::-moz-range-thumb{
     width:14px;height:14px;
     border-radius:50%;
-    background:#fff;
-    border:none
+    background:#f9fafb;
+    border:none;
   }
 
-  /* Tooltips de botones (negros, como antes) */
-  .btn[data-tip]::before{
-    content:attr(data-tip);
-    position:absolute;
-    bottom:48px;
-    left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,.8);
-    color:#fff;
-    font-size:11px;
-    padding:3px 6px;
-    border-radius:6px;
-    white-space:nowrap;
-    opacity:0;
-    pointer-events:none;
-    transition:opacity .12s ease-out;
-  }
-  .btn[data-tip]:hover::before{
-    opacity:1;
-  }
+  /* Estados de visibilidad UI */
 
-  /* Estados de visibilidad de la interfaz para inactividad */
   .ui-visible{
     opacity:1;
-    transition:opacity 2s ease-out;
+    transition:opacity 0.35s ease-out;
   }
   .ui-hidden{
     opacity:0;
-    transition:opacity 3s ease-out;
+    transition:opacity 0.5s ease-out;
     pointer-events:none;
   }
-
-    /* Información de marcas integrada en los triángulos (mark-label) */
-
 </style>
 </head>
 <body>
@@ -278,162 +553,96 @@
   <p id="aboutMeta"></p>
 </div>
 
-<div class="info" id="eqPanel">
-  <h3>Ecualizador</h3>
-  <div style="display:flex;gap:10px;justify-content:space-between;margin:10px 0 6px;">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <span style="font-size:11px;opacity:.8;">Graves</span>
-      <input type="range" id="eqBand1" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+<div class="ctrls ui-visible" id="ctrls">
+  <!-- Fila superior: utilidades generales -->
+  <div class="ctrl-row">
+    <div class="btn" id="open" data-tip="Abrir vídeo">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 7h5l2 3h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <path d="M3 7V5a2 2 0 0 1 2-2h5l2 2"/>
+      </svg>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <span style="font-size:11px;opacity:.8;">Bajo-medios</span>
-      <input type="range" id="eqBand2" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    <div class="btn" id="zoomBtn" data-tip="Zoom">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="5"/>
+        <path d="M16 16l4 4"/>
+        <path d="M11 8v6"/>
+        <path d="M8 11h6"/>
+      </svg>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <span style="font-size:11px;opacity:.8;">Medios</span>
-      <input type="range" id="eqBand3" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    <div class="btn" id="infoBtn" data-tip="Información">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 16v-5"/>
+        <circle cx="12" cy="8" r="1"/>
+      </svg>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <span style="font-size:11px;opacity:.8;">Alto-medios</span>
-      <input type="range" id="eqBand4" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    <div class="btn" id="mirror" data-tip="Espejo">
+      <svg viewBox="0 0 24 24">
+        <path d="M2 7h20M2 17h20"/>
+        <path d="M12 3v18"/>
+      </svg>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <span style="font-size:11px;opacity:.8;">Agudos</span>
-      <input type="range" id="eqBand5" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    <div class="btn" id="volumeBtn" data-tip="Volumen">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 10h4l5-4v12l-5-4H3z"/>
+        <path d="M16 8a4 4 0 0 1 0 8"/>
+      </svg>
+      <div class="vol-pop ui-visible" id="volPop">
+        <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
+      </div>
     </div>
   </div>
-  <div style="display:flex;justify-content:center;gap:8px;margin-top:4px;">
-    <button id="eqFlatBtn" style="font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;">Plano</button>
-    <button id="eqWarmBtn" style="font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;">Graves+</button>
-    <button id="eqVBtn" style="font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;">V</button>
+
+  <!-- Fila central: control de velocidad -->
+  <div class="ctrl-row">
+    <div class="btn" id="speedDown" data-tip="Velocidad -">
+      <svg viewBox="0 0 24 24">
+        <path d="M5 12h14"/>
+      </svg>
+    </div>
+    <div class="btn btn--text" id="rateLabel" data-tip="Velocidad actual (click para 1.00×)">1.00×</div>
+    <div class="btn" id="speedUp" data-tip="Velocidad +">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Fila inferior: reproducción y bucles -->
+  <div class="ctrl-row">
+    <div class="btn" id="play" data-tip="Reproducir / Pausa">
+      <svg id="playIcon" viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z" id="playShape"/>
+      </svg>
+    </div>
+    <div class="btn" id="fs" data-tip="Pantalla completa">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
+      </svg>
+    </div>
+    <div class="btn" id="autoHideBtn" data-tip="Ocultar controles tras inactividad">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="7"/>
+        <path d="M12 8v4"/>
+        <path d="M12 12l3 2"/>
+      </svg>
+    </div>
+    <div class="btn" id="loop" data-tip="Bucle A-B">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 10a6 6 0 0 1 6-6h5"/>
+        <path d="M15 4l-2-2 2-2"/>
+        <path d="M20 14a6 6 0 0 1-6 6h-5"/>
+        <path d="M9 20l2 2-2 2"/>
+      </svg>
+    </div>
+    <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
+      <svg viewBox="0 0 24 24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </div>
   </div>
 </div>
-
-<div class="info" id="imagePanel">
-  <h3>Ajustes de imagen</h3>
-  <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
-    <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
-      <span style="min-width:72px;opacity:.85;">Saturación</span>
-      <input type="range" id="satRange" min="0" max="200" value="100" step="1" style="flex:1;">
-    </label>
-    <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
-      <span style="min-width:72px;opacity:.85;">Contraste</span>
-      <input type="range" id="conRange" min="0" max="200" value="100" step="1" style="flex:1;">
-    </label>
-    <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
-      <span style="min-width:72px;opacity:.85;">Brillo</span>
-      <input type="range" id="briRange" min="50" max="150" value="100" step="1" style="flex:1;">
-    </label>
-  </div>
-</div>
-
-  <div class="ctrls ui-visible" id="ctrls">
-    <!-- Fila superior: utilidades generales -->
-    <div class="ctrl-row">
-      <div class="btn" id="open" data-tip="Abrir vídeo">
-        <svg viewBox="0 0 24 24">
-          <path d="M3 7h5l2 3h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <path d="M3 7V5a2 2 0 0 1 2-2h5l2 2"/>
-        </svg>
-      </div>
-      <div class="btn" id="zoomBtn" data-tip="Zoom">
-        <svg viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="5"/>
-          <path d="M16 16l4 4"/>
-          <path d="M11 8v6"/>
-          <path d="M8 11h6"/>
-        </svg>
-      </div>
-      <div class="btn" id="infoBtn" data-tip="Información">
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M12 16v-5"/>
-          <circle cx="12" cy="8" r="1"/>
-        </svg>
-      </div>
-      <div class="btn" id="mirror" data-tip="Espejo">
-        <svg viewBox="0 0 24 24">
-          <path d="M2 7h20M2 17h20"/>
-          <path d="M12 3v18"/>
-        </svg>
-      </div>
-      <div class="btn" id="volumeBtn" data-tip="Volumen">
-        <svg viewBox="0 0 24 24">
-          <path d="M3 10h4l5-4v12l-5-4H3z"/>
-          <path d="M16 8a4 4 0 0 1 0 8"/>
-        </svg>
-        <div class="vol-pop ui-visible" id="volPop">
-          <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
-        </div>
-      </div>
-    </div>
-
-    <!-- Fila central: velocidad y reproducción/pantalla completa -->
-    <div class="ctrl-row">
-      <div class="btn" id="play" data-tip="Reproducir / Pausa">
-        <svg id="playIcon" viewBox="0 0 24 24">
-          <path d="M8 5v14l11-7z" id="playShape"/>
-        </svg>
-      </div>
-      <div class="btn" id="speedDown" data-tip="Velocidad -">
-        <svg viewBox="0 0 24 24">
-          <path d="M5 12h14"/>
-        </svg>
-      </div>
-      <div class="btn btn--text" id="rateLabel" data-tip="Velocidad actual (click para 1.00×)">1.00×</div>
-      <div class="btn" id="speedUp" data-tip="Velocidad +">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 5v14M5 12h14"/>
-        </svg>
-      </div>
-      <div class="btn" id="fs" data-tip="Pantalla completa">
-        <svg viewBox="0 0 24 24">
-          <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
-        </svg>
-      </div>
-    </div>
-
-    <!-- Fila inferior: ajustes, bucles y ecualizador -->
-    <div class="ctrl-row">
-      <div class="btn" id="imageBtn" data-tip="Ajustes de imagen">
-        <svg viewBox="0 0 24 24">
-          <rect x="4" y="5" width="16" height="12" rx="2" ry="2"/>
-          <path d="M4 15l4-4 3 3 5-5 4 4"/>
-        </svg>
-      </div>
-      <div class="btn" id="autoHideBtn" data-tip="Ocultar controles tras inactividad">
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="7"/>
-          <path d="M12 8v4"/>
-          <path d="M12 12l3 2"/>
-        </svg>
-      </div>
-      <div class="btn" id="loop" data-tip="Bucle A-B">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 10a6 6 0 0 1 6-6h5"/>
-          <path d="M15 4l-2-2 2-2"/>
-          <path d="M20 14a6 6 0 0 1-6 6h-5"/>
-          <path d="M9 20l2 2-2 2"/>
-        </svg>
-      </div>
-      <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </div>
-      <div class="btn" id="eqBtn" data-tip="Ecualizador">
-        <svg viewBox="0 0 24 24">
-          <path d="M5 4v16"/>
-          <path d="M12 4v16"/>
-          <path d="M19 4v16"/>
-          <circle cx="5" cy="10" r="2"/>
-          <circle cx="12" cy="7" r="2"/>
-          <circle cx="19" cy="14" r="2"/>
-        </svg>
-      </div>
-    </div>
-  </div>
-
 
 <script>
 const vid = document.querySelector("#vid");
@@ -477,25 +686,11 @@ const volPop    = document.querySelector("#volPop");
 const volRange  = document.querySelector("#volRange");
 const fsBtn     = document.querySelector("#fs");
 const autoHideBtn = document.querySelector("#autoHideBtn");
-const eqBtn     = document.querySelector("#eqBtn");
-const eqPanel   = document.querySelector("#eqPanel");
-const imageBtn  = document.querySelector("#imageBtn");
-const imagePanel= document.querySelector("#imagePanel");
-const eqBand1   = document.querySelector("#eqBand1");
-const eqBand2   = document.querySelector("#eqBand2");
-const eqBand3   = document.querySelector("#eqBand3");
-const eqBand4   = document.querySelector("#eqBand4");
-const eqBand5   = document.querySelector("#eqBand5");
-const eqFlatBtn = document.querySelector("#eqFlatBtn");
-const eqWarmBtn = document.querySelector("#eqWarmBtn");
-const eqVBtn    = document.querySelector("#eqVBtn");
-const satRange  = document.querySelector("#satRange");
-const conRange  = document.querySelector("#conRange");
-const briRange  = document.querySelector("#briRange");
 
 let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
 let zoomLevel = 1;
-let autoHideEnabled = false;
+let autoHideEnabled = true;
+let autoHideWasEnabledBeforeInfo = false;
 const MIN_AB_GAP = 0.2; // separación mínima en segundos entre A y B
 let isSeeking=false;
 let draggingMark = null;
@@ -552,14 +747,6 @@ function applyVideoTransform(){
   }else{
     vid.style.transform = `scale(${zoomLevel})`;
   }
-}
-
-function applyImageAdjustments(){
-  const sat = satRange ? satRange.value : 100;
-  const con = conRange ? conRange.value : 100;
-  const bri = briRange ? briRange.value : 100;
-  const filter = `saturate(${sat}%) contrast(${con}%) brightness(${bri}%)`;
-  vid.style.filter = filter;
 }
 
 function updateZoomUI(){
@@ -623,55 +810,18 @@ file.onchange = e=>{
   }
 };
 
-// Gestión de paneles modales (info, ecualizador, imagen) y auto-ocultado
-let autoHideWasEnabledBeforePanels = false;
+// Info toggle con interacción con auto-ocultado
+infoBtn.onclick=()=>{
+  pulse(infoBtn);
+  if(infoPanel.style.display==="block"){
+    // Cerrar panel de información
+    infoPanel.style.display="none";
+    infoBtn.classList.remove("active");
 
-const panels = [
-  {id:"info", panel:infoPanel, btn:infoBtn},
-  {id:"eq",   panel:eqPanel,   btn:eqBtn},
-  {id:"img",  panel:imagePanel,btn:imageBtn}
-];
-
-function anyPanelOpen(){
-  return panels.some(p=>p.panel && p.panel.style.display==="block");
-}
-
-function setOpenPanel(targetId){
-  const wasOpen = anyPanelOpen();
-
-  panels.forEach(p=>{
-    const shouldOpen = (targetId && p.id===targetId);
-    if(p.panel){
-      p.panel.style.display = shouldOpen ? "block" : "none";
-    }
-    if(p.btn){
-      p.btn.classList.toggle("active", shouldOpen);
-    }
-  });
-
-  const nowOpen = anyPanelOpen();
-
-  if(!wasOpen && nowOpen){
-    // Se acaba de abrir algún panel
-    if(autoHideEnabled){
-      autoHideWasEnabledBeforePanels = true;
-      autoHideEnabled = false;
-      if(autoHideBtn){
-        autoHideBtn.classList.remove("active");
-      }
-      if(inactivityTimeout){
-        clearTimeout(inactivityTimeout);
-        inactivityTimeout = null;
-      }
-      showUI();
-    }else{
-      autoHideWasEnabledBeforePanels = false;
-    }
-  }else if(wasOpen && !nowOpen){
-    // Se han cerrado todos los paneles
-    if(autoHideWasEnabledBeforePanels){
+    // Si el auto-ocultado estaba activo antes de abrir info, lo reactivamos
+    if(autoHideWasEnabledBeforeInfo){
       autoHideEnabled = true;
-      autoHideWasEnabledBeforePanels = false;
+      autoHideWasEnabledBeforeInfo = false;
       if(autoHideBtn){
         autoHideBtn.classList.add("active");
       }
@@ -679,43 +829,27 @@ function setOpenPanel(targetId){
         resetInactivityTimer();
       }
     }
-  }
-}
-
-function togglePanel(id){
-  const entry = panels.find(p=>p.id===id);
-  if(!entry || !entry.panel) return;
-  const isOpen = entry.panel.style.display==="block";
-  if(isOpen){
-    setOpenPanel(null);
   }else{
-    setOpenPanel(id);
+    // Abrir panel de información
+    updateInfoMeta();
+    infoPanel.style.display="block";
+    infoBtn.classList.add("active");
+
+    // Si el auto-ocultado está activo, lo desactivamos temporalmente
+    if(autoHideEnabled){
+      autoHideWasEnabledBeforeInfo = true;
+      autoHideEnabled = false;
+      if(autoHideBtn){
+        autoHideBtn.classList.remove("active");
+      }
+      if(typeof showUI === "function"){
+        showUI();
+      }
+    }else{
+      autoHideWasEnabledBeforeInfo = false;
+    }
   }
-}
-
-// Información
-infoBtn.onclick=()=>{
-  pulse(infoBtn);
-  updateInfoMeta();
-  togglePanel("info");
 };
-
-// Ecualizador
-if(eqBtn){
-  eqBtn.onclick=()=>{
-    pulse(eqBtn);
-    togglePanel("eq");
-  };
-}
-
-// Ajustes de imagen
-if(imageBtn){
-  imageBtn.onclick=()=>{
-    pulse(imageBtn);
-    togglePanel("img");
-  };
-}
-
 
 function human(n){
   if(n<1024) return n+" B";
@@ -1186,12 +1320,10 @@ function resetInactivityTimer(){
 
 // Botón para activar/desactivar el auto-ocultado de controles
 if(autoHideBtn){
+  autoHideBtn.classList.add("active"); // por defecto, auto-ocultado activo
   autoHideBtn.onclick = ()=>{
     pulse(autoHideBtn);
     autoHideEnabled = !autoHideEnabled;
-    if(autoHideEnabled){
-      setOpenPanel(null); // cerramos paneles si se activa el auto-ocultado
-    }
     autoHideBtn.classList.toggle("active", autoHideEnabled);
     if(autoHideEnabled){
       resetInactivityTimer();
@@ -1205,7 +1337,6 @@ if(autoHideBtn){
   };
 }
 
-
 // Eventos que cuentan como actividad del usuario
 ["mousemove","mousedown","keydown","wheel","touchstart","pointermove"].forEach(ev=>{
   document.addEventListener(ev, resetInactivityTimer, {passive:true});
@@ -1213,37 +1344,6 @@ if(autoHideBtn){
 
 // Iniciar temporizador de inactividad al cargar
 resetInactivityTimer();
-
-// Listeners de ajustes de imagen
-if(satRange) satRange.addEventListener("input", applyImageAdjustments);
-if(conRange) conRange.addEventListener("input", applyImageAdjustments);
-if(briRange) briRange.addEventListener("input", applyImageAdjustments);
-applyImageAdjustments();
-
-// Presets del ecualizador
-if(eqFlatBtn){
-  eqFlatBtn.addEventListener("click", ()=>{
-    [eqBand1,eqBand2,eqBand3,eqBand4,eqBand5].forEach(b=>{ if(b) b.value=0; });
-  });
-}
-if(eqWarmBtn){
-  eqWarmBtn.addEventListener("click", ()=>{
-    if(eqBand1) eqBand1.value = 6;
-    if(eqBand2) eqBand2.value = 3;
-    if(eqBand3) eqBand3.value = 0;
-    if(eqBand4) eqBand4.value = -3;
-    if(eqBand5) eqBand5.value = -6;
-  });
-}
-if(eqVBtn){
-  eqVBtn.addEventListener("click", ()=>{
-    if(eqBand1) eqBand1.value = 6;
-    if(eqBand2) eqBand2.value = -4;
-    if(eqBand3) eqBand3.value = -6;
-    if(eqBand4) eqBand4.value = -4;
-    if(eqBand5) eqBand5.value = 6;
-  });
-}
 
 // Inicializar estados
 rate = 1;
