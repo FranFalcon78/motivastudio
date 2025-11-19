@@ -26,7 +26,25 @@
   overflow:hidden;
   text-overflow:ellipsis;
 }
-  .ctrls{position:absolute;bottom:12vh;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:1rem;pointer-events:auto;z-index:10}
+  .ctrls{
+    position:absolute;
+    bottom:12vh;
+    left:0;
+    right:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    pointer-events:auto;
+    z-index:10;
+  }
+  .ctrl-row{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:.8rem;
+  }
   .btn{min-width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.25);position:relative;color:#fff}
   .btn:hover{background:rgba(255,255,255,.28)}
   .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
@@ -125,7 +143,22 @@
   .ab-range.show{opacity:1}
   .ab-range.loop-active{filter:blur(3px);}
 
-  .info{position:absolute;right:12px;top:12px;z-index:25;max-width:min(92vw,520px);background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);padding:12px 14px;border-radius:12px;backdrop-filter:blur(4px);display:none;line-height:1.35}
+  .info{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    z-index:25;
+    max-width:min(92vw,520px);
+    background:rgba(0,0,0,.55);
+    color:#fff;
+    border:1px solid rgba(255,255,255,.25);
+    padding:12px 14px;
+    border-radius:12px;
+    backdrop-filter:blur(4px);
+    display:none;
+    line-height:1.35;
+  }
   .info h3{margin:.2rem 0 .6rem;font-size:14px;opacity:.95}
   .info p{margin:.25rem 0;font-size:13px;opacity:.95;white-space:pre-line}
   .hidden{display:none!important}
@@ -199,22 +232,33 @@
     opacity:1;
   }
 
+  /* Estados de visibilidad de la interfaz para inactividad */
+  .ui-visible{
+    opacity:1;
+    transition:opacity 2s ease-out;
+  }
+  .ui-hidden{
+    opacity:0;
+    transition:opacity 3s ease-out;
+    pointer-events:none;
+  }
+
     /* Información de marcas integrada en los triángulos (mark-label) */
 
 </style>
 </head>
 <body>
 
-<div class="brand">CursoPlayerWeb — © 2025 Fran Falcón</div>
+<div class="brand ui-visible">CursoPlayerWeb — © 2025 Fran Falcón</div>
 
-<div class="file-name" id="fileNameLabel">Sin archivo</div>
+<div class="file-name ui-visible" id="fileNameLabel"></div>
 
 <div id="bgFrame" class="bg-frame"></div>
 
 <input id="file" type="file" accept="video/*">
 <video id="vid" playsinline></video>
 
-<div class="seek" id="seek">
+<div class="seek ui-visible" id="seek">
   <div class="seek-inner" id="seekInner">
     <div class="trail" id="trail"></div>
     <div class="ab-range" id="abRange"></div>
@@ -227,96 +271,169 @@
   </div>
 </div>
 
-<div class="info" id="infoPanel">
+<div class="info ui-visible" id="infoPanel">
   <h3>Información del archivo</h3>
   <p id="infoMeta">Abre un vídeo para ver los detalles.</p>
   <h3>Acerca de</h3>
   <p id="aboutMeta"></p>
 </div>
 
-<div class="ctrls" id="ctrls">
-  <div class="btn" id="open" data-tip="Abrir vídeo">
-    <svg viewBox="0 0 24 24">
-      <path d="M3 7h5l2 3h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-      <path d="M3 7V5a2 2 0 0 1 2-2h5l2 2"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="zoomBtn" data-tip="Zoom">
-    <svg viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="5"/>
-      <path d="M16 16l4 4"/>
-      <path d="M11 8v6"/>
-      <path d="M8 11h6"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="infoBtn" data-tip="Información">
-    <svg viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="9"/>
-      <path d="M12 16v-5"/>
-      <circle cx="12" cy="8" r="1"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="play" data-tip="Reproducir / Pausa">
-    <svg id="playIcon" viewBox="0 0 24 24">
-      <path d="M8 5v14l11-7z" id="playShape"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="mirror" data-tip="Espejo">
-    <svg viewBox="0 0 24 24">
-      <path d="M2 7h20M2 17h20"/>
-      <path d="M12 3v18"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="speedDown" data-tip="Velocidad -">
-    <svg viewBox="0 0 24 24">
-      <path d="M5 12h14"/>
-    </svg>
-  </div>
-
-  <div class="btn btn--text" id="rateLabel" data-tip="Velocidad actual (click para 1.00×)">1.00×</div>
-
-  <div class="btn" id="speedUp" data-tip="Velocidad +">
-    <svg viewBox="0 0 24 24">
-      <path d="M12 5v14M5 12h14"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="fs" data-tip="Pantalla completa">
-    <svg viewBox="0 0 24 24">
-      <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
-    <svg viewBox="0 0 24 24">
-      <path d="M18 6L6 18M6 6l12 12"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="loop" data-tip="Bucle A-B">
-    <svg viewBox="0 0 24 24">
-      <path d="M4 10a6 6 0 0 1 6-6h5"/>
-      <path d="M15 4l-2-2 2-2"/>
-      <path d="M20 14a6 6 0 0 1-6 6h-5"/>
-      <path d="M9 20l2 2-2 2"/>
-    </svg>
-  </div>
-
-  <div class="btn" id="volumeBtn" data-tip="Volumen">
-    <svg viewBox="0 0 24 24">
-      <path d="M3 10h4l5-4v12l-5-4H3z"/>
-      <path d="M16 8a4 4 0 0 1 0 8"/>
-    </svg>
-    <div class="vol-pop" id="volPop">
-      <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
+<div class="info" id="eqPanel">
+  <h3>Ecualizador</h3>
+  <div style="display:flex;gap:10px;justify-content:space-between;margin:10px 0 6px;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:11px;opacity:.8;">Graves</span>
+      <input type="range" id="eqBand1" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:11px;opacity:.8;">Bajo-medios</span>
+      <input type="range" id="eqBand2" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:11px;opacity:.8;">Medios</span>
+      <input type="range" id="eqBand3" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:11px;opacity:.8;">Alto-medios</span>
+      <input type="range" id="eqBand4" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:11px;opacity:.8;">Agudos</span>
+      <input type="range" id="eqBand5" min="-12" max="12" value="0" step="1" orient="vertical" style="writing-mode:bt-lr;transform:rotate(-90deg);width:90px;">
     </div>
   </div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:4px;">
+    <button id="eqFlatBtn" style="font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;">Plano</button>
+    <button id="eqWarmBtn" style="font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;">Graves+</button>
+    <button id="eqVBtn" style="font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;">V</button>
+  </div>
 </div>
+
+<div class="info" id="imagePanel">
+  <h3>Ajustes de imagen</h3>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+      <span style="min-width:72px;opacity:.85;">Saturación</span>
+      <input type="range" id="satRange" min="0" max="200" value="100" step="1" style="flex:1;">
+    </label>
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+      <span style="min-width:72px;opacity:.85;">Contraste</span>
+      <input type="range" id="conRange" min="0" max="200" value="100" step="1" style="flex:1;">
+    </label>
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+      <span style="min-width:72px;opacity:.85;">Brillo</span>
+      <input type="range" id="briRange" min="50" max="150" value="100" step="1" style="flex:1;">
+    </label>
+  </div>
+</div>
+
+  <div class="ctrls ui-visible" id="ctrls">
+    <!-- Fila superior: utilidades generales -->
+    <div class="ctrl-row">
+      <div class="btn" id="open" data-tip="Abrir vídeo">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 7h5l2 3h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <path d="M3 7V5a2 2 0 0 1 2-2h5l2 2"/>
+        </svg>
+      </div>
+      <div class="btn" id="zoomBtn" data-tip="Zoom">
+        <svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="5"/>
+          <path d="M16 16l4 4"/>
+          <path d="M11 8v6"/>
+          <path d="M8 11h6"/>
+        </svg>
+      </div>
+      <div class="btn" id="infoBtn" data-tip="Información">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 16v-5"/>
+          <circle cx="12" cy="8" r="1"/>
+        </svg>
+      </div>
+      <div class="btn" id="mirror" data-tip="Espejo">
+        <svg viewBox="0 0 24 24">
+          <path d="M2 7h20M2 17h20"/>
+          <path d="M12 3v18"/>
+        </svg>
+      </div>
+      <div class="btn" id="volumeBtn" data-tip="Volumen">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10h4l5-4v12l-5-4H3z"/>
+          <path d="M16 8a4 4 0 0 1 0 8"/>
+        </svg>
+        <div class="vol-pop ui-visible" id="volPop">
+          <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Fila central: velocidad y reproducción/pantalla completa -->
+    <div class="ctrl-row">
+      <div class="btn" id="play" data-tip="Reproducir / Pausa">
+        <svg id="playIcon" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z" id="playShape"/>
+        </svg>
+      </div>
+      <div class="btn" id="speedDown" data-tip="Velocidad -">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 12h14"/>
+        </svg>
+      </div>
+      <div class="btn btn--text" id="rateLabel" data-tip="Velocidad actual (click para 1.00×)">1.00×</div>
+      <div class="btn" id="speedUp" data-tip="Velocidad +">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </div>
+      <div class="btn" id="fs" data-tip="Pantalla completa">
+        <svg viewBox="0 0 24 24">
+          <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Fila inferior: ajustes, bucles y ecualizador -->
+    <div class="ctrl-row">
+      <div class="btn" id="imageBtn" data-tip="Ajustes de imagen">
+        <svg viewBox="0 0 24 24">
+          <rect x="4" y="5" width="16" height="12" rx="2" ry="2"/>
+          <path d="M4 15l4-4 3 3 5-5 4 4"/>
+        </svg>
+      </div>
+      <div class="btn" id="autoHideBtn" data-tip="Ocultar controles tras inactividad">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="7"/>
+          <path d="M12 8v4"/>
+          <path d="M12 12l3 2"/>
+        </svg>
+      </div>
+      <div class="btn" id="loop" data-tip="Bucle A-B">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 10a6 6 0 0 1 6-6h5"/>
+          <path d="M15 4l-2-2 2-2"/>
+          <path d="M20 14a6 6 0 0 1-6 6h-5"/>
+          <path d="M9 20l2 2-2 2"/>
+        </svg>
+      </div>
+      <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </div>
+      <div class="btn" id="eqBtn" data-tip="Ecualizador">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 4v16"/>
+          <path d="M12 4v16"/>
+          <path d="M19 4v16"/>
+          <circle cx="5" cy="10" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="19" cy="14" r="2"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
 
 <script>
 const vid = document.querySelector("#vid");
@@ -331,6 +448,9 @@ const markBEl = document.querySelector("#markB");
 const abRange = document.querySelector("#abRange");
 const timeStartLabel = document.querySelector("#timeStartLabel");
 const timeEndLabel = document.querySelector("#timeEndLabel");
+const brand = document.querySelector(".brand");
+const fileNameLabel = document.querySelector("#fileNameLabel");
+const ctrls = document.querySelector("#ctrls");
 const markALabel = document.createElement("div");
 markALabel.className = "mark-label mark-labelA";
 markAEl.appendChild(markALabel);
@@ -356,9 +476,26 @@ const volumeBtn = document.querySelector("#volumeBtn");
 const volPop    = document.querySelector("#volPop");
 const volRange  = document.querySelector("#volRange");
 const fsBtn     = document.querySelector("#fs");
+const autoHideBtn = document.querySelector("#autoHideBtn");
+const eqBtn     = document.querySelector("#eqBtn");
+const eqPanel   = document.querySelector("#eqPanel");
+const imageBtn  = document.querySelector("#imageBtn");
+const imagePanel= document.querySelector("#imagePanel");
+const eqBand1   = document.querySelector("#eqBand1");
+const eqBand2   = document.querySelector("#eqBand2");
+const eqBand3   = document.querySelector("#eqBand3");
+const eqBand4   = document.querySelector("#eqBand4");
+const eqBand5   = document.querySelector("#eqBand5");
+const eqFlatBtn = document.querySelector("#eqFlatBtn");
+const eqWarmBtn = document.querySelector("#eqWarmBtn");
+const eqVBtn    = document.querySelector("#eqVBtn");
+const satRange  = document.querySelector("#satRange");
+const conRange  = document.querySelector("#conRange");
+const briRange  = document.querySelector("#briRange");
 
 let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
 let zoomLevel = 1;
+let autoHideEnabled = false;
 const MIN_AB_GAP = 0.2; // separación mínima en segundos entre A y B
 let isSeeking=false;
 let draggingMark = null;
@@ -415,6 +552,14 @@ function applyVideoTransform(){
   }else{
     vid.style.transform = `scale(${zoomLevel})`;
   }
+}
+
+function applyImageAdjustments(){
+  const sat = satRange ? satRange.value : 100;
+  const con = conRange ? conRange.value : 100;
+  const bri = briRange ? briRange.value : 100;
+  const filter = `saturate(${sat}%) contrast(${con}%) brightness(${bri}%)`;
+  vid.style.filter = filter;
 }
 
 function updateZoomUI(){
@@ -478,18 +623,99 @@ file.onchange = e=>{
   }
 };
 
-// Info toggle
+// Gestión de paneles modales (info, ecualizador, imagen) y auto-ocultado
+let autoHideWasEnabledBeforePanels = false;
+
+const panels = [
+  {id:"info", panel:infoPanel, btn:infoBtn},
+  {id:"eq",   panel:eqPanel,   btn:eqBtn},
+  {id:"img",  panel:imagePanel,btn:imageBtn}
+];
+
+function anyPanelOpen(){
+  return panels.some(p=>p.panel && p.panel.style.display==="block");
+}
+
+function setOpenPanel(targetId){
+  const wasOpen = anyPanelOpen();
+
+  panels.forEach(p=>{
+    const shouldOpen = (targetId && p.id===targetId);
+    if(p.panel){
+      p.panel.style.display = shouldOpen ? "block" : "none";
+    }
+    if(p.btn){
+      p.btn.classList.toggle("active", shouldOpen);
+    }
+  });
+
+  const nowOpen = anyPanelOpen();
+
+  if(!wasOpen && nowOpen){
+    // Se acaba de abrir algún panel
+    if(autoHideEnabled){
+      autoHideWasEnabledBeforePanels = true;
+      autoHideEnabled = false;
+      if(autoHideBtn){
+        autoHideBtn.classList.remove("active");
+      }
+      if(inactivityTimeout){
+        clearTimeout(inactivityTimeout);
+        inactivityTimeout = null;
+      }
+      showUI();
+    }else{
+      autoHideWasEnabledBeforePanels = false;
+    }
+  }else if(wasOpen && !nowOpen){
+    // Se han cerrado todos los paneles
+    if(autoHideWasEnabledBeforePanels){
+      autoHideEnabled = true;
+      autoHideWasEnabledBeforePanels = false;
+      if(autoHideBtn){
+        autoHideBtn.classList.add("active");
+      }
+      if(typeof resetInactivityTimer === "function"){
+        resetInactivityTimer();
+      }
+    }
+  }
+}
+
+function togglePanel(id){
+  const entry = panels.find(p=>p.id===id);
+  if(!entry || !entry.panel) return;
+  const isOpen = entry.panel.style.display==="block";
+  if(isOpen){
+    setOpenPanel(null);
+  }else{
+    setOpenPanel(id);
+  }
+}
+
+// Información
 infoBtn.onclick=()=>{
   pulse(infoBtn);
-  if(infoPanel.style.display==="block"){
-    infoPanel.style.display="none";
-    infoBtn.classList.remove("active");
-  }else{
-    updateInfoMeta();
-    infoPanel.style.display="block";
-    infoBtn.classList.add("active");
-  }
+  updateInfoMeta();
+  togglePanel("info");
 };
+
+// Ecualizador
+if(eqBtn){
+  eqBtn.onclick=()=>{
+    pulse(eqBtn);
+    togglePanel("eq");
+  };
+}
+
+// Ajustes de imagen
+if(imageBtn){
+  imageBtn.onclick=()=>{
+    pulse(imageBtn);
+    togglePanel("img");
+  };
+}
+
 
 function human(n){
   if(n<1024) return n+" B";
@@ -524,18 +750,31 @@ function updateInfoMeta(){
   infoMeta.textContent = lines.join("\n");
 
   const about=[
-    "CursoPlayerWeb",
-    "© 2025 Francisco Javier Falcón Muñoz",
-    "",
-    "Función: Herramienta didáctica para analizar vídeos de baile con:",
-    "• Reproducción con control de velocidad",
-    "• Marcas A y B y bucle A-B",
-    "• Barra de tiempo precisa con arrastre",
-    "• Espejo (flip horizontal)",
-    "• Pantalla completa",
-    "• Control de volumen"
-  ].join("\n");
-  aboutMeta.textContent = about;
+"CursoPlayerWeb – Herramienta didáctica para bailarines",
+"© 2025 Francisco Javier Falcón Muñoz",
+"",
+"CursoPlayerWeb es una herramienta creada para que cualquier bailarín pueda analizar, estudiar y perfeccionar sus movimientos utilizando vídeos de clases presenciales, redes sociales, congresos o tutoriales. Convierte cualquier grabación en una clase personalizada, permitiéndote observar detalles, corregir técnica y entrenar con precisión.",
+"",
+"Funciones principales orientadas al aprendizaje:",
+"• Control de velocidad ultrafino (0.10× a 3.00×)",
+"• Marcas A-B y bucle automático",
+"• Barra de tiempo precisa con clic y arrastre",
+"• Modo Espejo para copiar al profesor como si estuviera frente a ti",
+"• Zoom progresivo para centrarte en la zona útil del vídeo",
+"• Pantalla completa optimizada",
+"• Fondo difuminado inteligente",
+"• Control de volumen contextual",
+"",
+"Beneficios didácticos:",
+"• Aprendizaje más rápido gracias a la repetición exacta de los segundos que realmente necesitas",
+"• Corrección técnica analizando tus propios vídeos",
+"• Mejor comprensión de la musicalidad",
+"• Memoria corporal más sólida",
+"• Entrena en cualquier lugar sin instalar nada",
+"",
+"CursoPlayerWeb transforma cualquier vídeo en una herramienta profesional de estudio."
+].join("\n");
+aboutMeta.textContent = about;
 }
 
 // Play / pausa + estado activo
@@ -747,6 +986,18 @@ vid.addEventListener("timeupdate",()=>{
   }
   updateProgressUI();
 });
+
+vid.addEventListener("ended",()=>{
+  // Aseguramos bucle continuo tanto con marcas A-B como sin ellas
+  if(loopAB && A!=null && B!=null && B>A){
+    vid.currentTime = A;
+    vid.play();
+  }else{
+    vid.currentTime = 0;
+    vid.play();
+  }
+});
+
 function maybeGenerateBackground(){
   if(!(vid.videoWidth && vid.videoHeight && vid.duration && isFinite(vid.duration))) return;
   const videoRatio = vid.videoWidth / vid.videoHeight;
@@ -891,6 +1142,108 @@ function onMarkPointerUp(e){
   markAEl.addEventListener(ev,onMarkPointerUp);
   markBEl.addEventListener(ev,onMarkPointerUp);
 });
+
+
+// Gestión de inactividad: ocultar/mostrar interfaz
+let inactivityTimeout = null;
+const INACTIVITY_DELAY = 3000; // 3 segundos sin interacción
+
+function hideUI(){
+  if(!autoHideEnabled) return;
+  if(ctrls) { ctrls.classList.remove("ui-visible"); ctrls.classList.add("ui-hidden"); }
+  if(seek)  { seek.classList.remove("ui-visible");  seek.classList.add("ui-hidden"); }
+  if(brand) { brand.classList.remove("ui-visible"); brand.classList.add("ui-hidden"); }
+  if(fileNameLabel){ fileNameLabel.classList.remove("ui-visible"); fileNameLabel.classList.add("ui-hidden"); }
+
+  // Cerrar panel de información y apagar botón
+  if(infoPanel){
+    infoPanel.style.display = "none";
+  }
+  if(infoBtn){
+    infoBtn.classList.remove("active");
+  }
+
+  // Cerrar popup de volumen
+  if(volPop){
+    volPop.style.display = "none";
+  }
+}
+
+function showUI(){
+  if(ctrls) { ctrls.classList.remove("ui-hidden"); ctrls.classList.add("ui-visible"); }
+  if(seek)  { seek.classList.remove("ui-hidden");  seek.classList.add("ui-visible"); }
+  if(brand) { brand.classList.remove("ui-hidden"); brand.classList.add("ui-visible"); }
+  if(fileNameLabel){ fileNameLabel.classList.remove("ui-hidden"); fileNameLabel.classList.add("ui-visible"); }
+}
+
+function resetInactivityTimer(){
+  if(!autoHideEnabled) return;
+  showUI();
+  if(inactivityTimeout) clearTimeout(inactivityTimeout);
+  inactivityTimeout = setTimeout(hideUI, INACTIVITY_DELAY);
+}
+
+
+// Botón para activar/desactivar el auto-ocultado de controles
+if(autoHideBtn){
+  autoHideBtn.onclick = ()=>{
+    pulse(autoHideBtn);
+    autoHideEnabled = !autoHideEnabled;
+    if(autoHideEnabled){
+      setOpenPanel(null); // cerramos paneles si se activa el auto-ocultado
+    }
+    autoHideBtn.classList.toggle("active", autoHideEnabled);
+    if(autoHideEnabled){
+      resetInactivityTimer();
+    }else{
+      if(inactivityTimeout){
+        clearTimeout(inactivityTimeout);
+        inactivityTimeout = null;
+      }
+      showUI();
+    }
+  };
+}
+
+
+// Eventos que cuentan como actividad del usuario
+["mousemove","mousedown","keydown","wheel","touchstart","pointermove"].forEach(ev=>{
+  document.addEventListener(ev, resetInactivityTimer, {passive:true});
+});
+
+// Iniciar temporizador de inactividad al cargar
+resetInactivityTimer();
+
+// Listeners de ajustes de imagen
+if(satRange) satRange.addEventListener("input", applyImageAdjustments);
+if(conRange) conRange.addEventListener("input", applyImageAdjustments);
+if(briRange) briRange.addEventListener("input", applyImageAdjustments);
+applyImageAdjustments();
+
+// Presets del ecualizador
+if(eqFlatBtn){
+  eqFlatBtn.addEventListener("click", ()=>{
+    [eqBand1,eqBand2,eqBand3,eqBand4,eqBand5].forEach(b=>{ if(b) b.value=0; });
+  });
+}
+if(eqWarmBtn){
+  eqWarmBtn.addEventListener("click", ()=>{
+    if(eqBand1) eqBand1.value = 6;
+    if(eqBand2) eqBand2.value = 3;
+    if(eqBand3) eqBand3.value = 0;
+    if(eqBand4) eqBand4.value = -3;
+    if(eqBand5) eqBand5.value = -6;
+  });
+}
+if(eqVBtn){
+  eqVBtn.addEventListener("click", ()=>{
+    if(eqBand1) eqBand1.value = 6;
+    if(eqBand2) eqBand2.value = -4;
+    if(eqBand3) eqBand3.value = -6;
+    if(eqBand4) eqBand4.value = -4;
+    if(eqBand5) eqBand5.value = 6;
+  });
+}
 
 // Inicializar estados
 rate = 1;
