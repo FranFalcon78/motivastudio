@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CursoPlayer Minimal (Rev 47)</title>
+<title>CursoPlayer Minimal (Rev 48)</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
@@ -55,8 +55,8 @@
   .pulse::after{content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 3px rgba(255,255,255,.6);animation:pulse .18s ease-out forwards}
   @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.15)}}
 
-  .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer}
-  .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px}
+  .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer;touch-action:none}
+  .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px;touch-action:none}
   .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:#ffffffcc;border-radius:2px;pointer-events:none}
   .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:rgba(255,255,255,.35);border-radius:6px;width:0%;pointer-events:none}
   .dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);left:0%;pointer-events:none}
@@ -164,51 +164,69 @@
   .hidden{display:none!important}
 
   .vol-pop{
-    position:absolute;
-    top:50%;
-    left:100%;
-    transform:translate(8px,-50%);
-    z-index:15;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:10px;
-    padding:8px 10px;
+    position:fixed;
+    inset:0;
     display:none;
-    backdrop-filter:blur(4px);
     align-items:center;
     justify-content:center;
-    flex-direction:row;
-    width:auto;
-    min-width:120px;
+    z-index:32;
   }
-  .vol-pop input[type=range]{
-    width:120px;
+  .vol-pop-inner{
+    background:rgba(0,0,0,.7);
+    border:1px solid rgba(255,255,255,.3);
+    border-radius:14px;
+    padding:16px 20px;
+    backdrop-filter:blur(6px);
+    min-width:260px;
+    max-width:320px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color:#fff;
+    font-size:13px;
+  }
+  .vol-pop-title{
+    font-size:14px;
+    margin-bottom:4px;
+    opacity:.95;
+    text-align:center;
+  }
+  .vol-pop-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .vol-pop-row span{
+    min-width:90px;
+  }
+  .vol-pop-row input[type=range]{
+    flex:1;
     appearance:none;
     background:transparent;
   }
-  .vol-pop input[type=range]::-webkit-slider-runnable-track{
+  .vol-pop-row input[type=range]::-webkit-slider-runnable-track{
     height:2px;
     background:#ffffff66;
-    border-radius:4px
+    border-radius:4px;
   }
-  .vol-pop input[type=range]::-webkit-slider-thumb{
+  .vol-pop-row input[type=range]::-webkit-slider-thumb{
     appearance:none;
     width:14px;height:14px;
     border-radius:50%;
     background:#fff;
     margin-top:-6px;
-    box-shadow:0 0 0 2px rgba(255,255,255,.35)
+    box-shadow:0 0 0 2px rgba(255,255,255,.35);
   }
-  .vol-pop input[type=range]::-moz-range-track{
+  .vol-pop-row input[type=range]::-moz-range-track{
     height:2px;
     background:#ffffff66;
-    border-radius:4px
+    border-radius:4px;
   }
-  .vol-pop input[type=range]::-moz-range-thumb{
+  .vol-pop-row input[type=range]::-moz-range-thumb{
     width:14px;height:14px;
     border-radius:50%;
     background:#fff;
-    border:none
+    border:none;
   }
 
   .img-pop{
@@ -452,6 +470,24 @@
   </div>
 </div>
 
+<div class="vol-pop ui-visible" id="volPop">
+  <div class="vol-pop-inner">
+    <div class="vol-pop-title">Ajustes de audio</div>
+    <div class="vol-pop-row">
+      <span>Volumen</span>
+      <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
+    </div>
+    <div class="vol-pop-row">
+      <span>Balance</span>
+      <input id="balanceRange" type="range" min="-1" max="1" step="0.01" value="0">
+    </div>
+    <div class="vol-pop-row">
+      <span>Graves</span>
+      <input id="bassRange" type="range" min="0" max="1" step="0.01" value="0.5">
+    </div>
+  </div>
+</div>
+
 <script>
 const vid = document.querySelector("#vid");
 const file = document.querySelector("#file");
@@ -492,6 +528,8 @@ const aboutMeta = document.querySelector("#aboutMeta");
 const volumeBtn = document.querySelector("#volumeBtn");
 const volPop    = document.querySelector("#volPop");
 const volRange  = document.querySelector("#volRange");
+const balanceRange = document.querySelector("#balanceRange");
+const bassRange = document.querySelector("#bassRange");
 const fsBtn     = document.querySelector("#fs");
 const autoHideBtn = document.querySelector("#autoHideBtn");
 
@@ -568,13 +606,6 @@ function updateZoomUI(){
 
 function updateVideoFilters(){
   vid.style.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
-  const isDefault =
-    Math.abs(contrast-1) < 0.01 &&
-    Math.abs(saturation-1) < 0.01 &&
-    Math.abs(brightness-1) < 0.01;
-  if(imageAdjustBtn){
-    imageAdjustBtn.classList.toggle("active", !isDefault);
-  }
 }
 
 function updateTimeLabels(){
@@ -656,6 +687,12 @@ infoBtn.onclick=()=>{
       imgPop.style.display = "none";
       if(imageAdjustBtn){
         imageAdjustBtn.classList.remove("active");
+      }
+    }
+    if(volPop){
+      volPop.style.display = "none";
+      if(volumeBtn){
+        volumeBtn.classList.remove("active");
       }
     }
     if(autoHideEnabled){
@@ -788,7 +825,31 @@ volumeBtn.onclick=(e)=>{
   pulse(volumeBtn);
   e.stopPropagation();
   const isOpen = volPop.style.display==="flex";
-  volPop.style.display = isOpen ? "none" : "flex";
+  if(isOpen){
+    volPop.style.display = "none";
+    volumeBtn.classList.remove("active");
+  }else{
+    volPop.style.display = "flex";
+    volumeBtn.classList.add("active");
+    if(imgPop){
+      imgPop.style.display = "none";
+      if(imageAdjustBtn){
+        imageAdjustBtn.classList.remove("active");
+      }
+    }
+    if(volPop){
+      volPop.style.display = "none";
+      if(volumeBtn){
+        volumeBtn.classList.remove("active");
+      }
+    }
+    if(infoPanel){
+      infoPanel.style.display = "none";
+      if(infoBtn){
+        infoBtn.classList.remove("active");
+      }
+    }
+  }
 };
 volRange.addEventListener("input",(e)=>{
   vid.volume = +e.target.value;
@@ -806,9 +867,6 @@ volRange.addEventListener("pointerdown",(e)=>{
   volRange.value = val;
   vid.volume = val;
   updateVolumeUI();
-});
-document.addEventListener("click",(e)=>{
-  if(!volumeBtn.contains(e.target)) volPop.style.display="none";
 });
 volPop.addEventListener("wheel",(e)=>{
   e.preventDefault();
@@ -983,18 +1041,20 @@ function setTimeFromClientX(clientX){
   updateProgressUI();
 }
 seek.addEventListener("pointerdown",(e)=>{
-  isSeeking=true;
-  seek.setPointerCapture(e.pointerId);
+  isSeeking = true;
+  setTimeFromClientX(e.clientX);
+  e.preventDefault();
+});
+document.addEventListener("pointermove",(e)=>{
+  if(!isSeeking) return;
   setTimeFromClientX(e.clientX);
 });
-seek.addEventListener("pointermove",(e)=>{
-  if(isSeeking) setTimeFromClientX(e.clientX);
+document.addEventListener("pointerup",()=>{
+  isSeeking = false;
 });
-seek.addEventListener("pointerup",(e)=>{
-  isSeeking=false;
-  seek.releasePointerCapture(e.pointerId);
+document.addEventListener("pointercancel",()=>{
+  isSeeking = false;
 });
-seek.addEventListener("pointercancel",()=>{isSeeking=false;});
 
 function onMarkPointerDown(e,which){
   if(!(vid.duration && isFinite(vid.duration))) return;
@@ -1099,6 +1159,14 @@ attachTouchDragToMark(markAEl,"A");
 attachTouchDragToMark(markBLabel,"B");
 attachTouchDragToMark(markBEl,"B");
 
+document.addEventListener("click",(e)=>{
+  if(infoPanel.style.display === "block"){
+    if(!infoPanel.contains(e.target) && !infoBtn.contains(e.target)){
+      infoPanel.style.display = "none";
+      infoBtn.classList.remove("active");
+    }
+  }
+});
 let inactivityTimeout = null;
 const INACTIVITY_DELAY = 3000;
 
@@ -1117,8 +1185,14 @@ function hideUI(){
   if(volPop){
     volPop.style.display = "none";
   }
+  if(volumeBtn){
+    volumeBtn.classList.remove("active");
+  }
   if(imgPop){
     imgPop.style.display = "none";
+  }
+  if(imageAdjustBtn){
+    imageAdjustBtn.classList.remove("active");
   }
 }
 
@@ -1164,13 +1238,21 @@ if(imageAdjustBtn && imgPop){
     const isOpen = imgPop.style.display === "flex";
     if(isOpen){
       imgPop.style.display = "none";
+      imageAdjustBtn.classList.remove("active");
     }else{
       imgPop.style.display = "flex";
-    }
-    if(infoPanel){
-      infoPanel.style.display = "none";
-      if(infoBtn){
-        infoBtn.classList.remove("active");
+      imageAdjustBtn.classList.add("active");
+      if(infoPanel){
+        infoPanel.style.display = "none";
+        if(infoBtn){
+          infoBtn.classList.remove("active");
+        }
+      }
+      if(volPop){
+        volPop.style.display = "none";
+        if(volumeBtn){
+          volumeBtn.classList.remove("active");
+        }
       }
     }
   };
@@ -1179,6 +1261,19 @@ if(imgPop){
   imgPop.addEventListener("click",(e)=>{
     if(e.target === imgPop){
       imgPop.style.display = "none";
+      if(imageAdjustBtn){
+        imageAdjustBtn.classList.remove("active");
+      }
+    }
+  });
+}
+if(volPop){
+  volPop.addEventListener("click",(e)=>{
+    if(e.target === volPop){
+      volPop.style.display = "none";
+      if(volumeBtn){
+        volumeBtn.classList.remove("active");
+      }
     }
   });
 }
@@ -1198,6 +1293,18 @@ if(saturRange){
   saturRange.addEventListener("input",(e)=>{
     saturation = parseInt(e.target.value,10) / 100;
     updateVideoFilters();
+  });
+}
+let balance = 0;
+let bass = 0.5;
+if(balanceRange){
+  balanceRange.addEventListener("input",(e)=>{
+    balance = parseFloat(e.target.value) || 0;
+  });
+}
+if(bassRange){
+  bassRange.addEventListener("input",(e)=>{
+    bass = parseFloat(e.target.value) || 0.5;
   });
 }
 
