@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CursoPlayer Minimal (Rev 23)</title>
+<title>CursoPlayer Minimal (Rev 47)</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
   .bg-frame{position:fixed;inset:0;z-index:-1;background:#000 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
-  .brand{position:absolute;top:10px;left:12px;z-index:20;color:#fff;font-size:12px;opacity:.85;letter-spacing:.2px;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:8px;user-select:none;pointer-events:none}
 .file-name{
   position:absolute;
   top:10px;
@@ -48,6 +47,7 @@
   .btn{min-width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.25);position:relative;color:#fff}
   .btn:hover{background:rgba(255,255,255,.28)}
   .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
+  #playIcon path{fill:#fff;stroke:none;}
   .btn--text{min-width:72px;width:auto;padding:0 .6rem;border-radius:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;opacity:.95;text-align:center;cursor:pointer}
   .active{box-shadow:0 0 0 2px rgba(255,255,255,.55) inset,0 0 12px rgba(255,255,255,.35)}
   .active svg{opacity:1}
@@ -61,10 +61,9 @@
   .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:rgba(255,255,255,.35);border-radius:6px;width:0%;pointer-events:none}
   .dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);left:0%;pointer-events:none}
 
-  /* Marcas A y B: líneas verticales sobre la línea de tiempo */
   .mark{
     position:absolute;
-    top:50%;                 /* centrado vertical sobre la barra de tiempo */
+    top:50%;
     transform:translateX(-50%);
     width:0;
     height:0;
@@ -79,7 +78,7 @@
     top:50%;
     transform:translate(-50%,-50%);
     width:2px;
-    height:22px;             /* longitud total de la marca vertical */
+    height:22px;
     background:#ffffffee;
     border-radius:2px;
     box-shadow:0 0 6px rgba(255,255,255,.35);
@@ -98,17 +97,18 @@
     white-space:nowrap;
     backdrop-filter:blur(4px);
     box-shadow:0 0 8px rgba(0,0,0,.35);
+    touch-action:none;
   }
 
-    .mark-labelA{
-    top: 10px;     /* bocadillo A: pegado a la marca por debajo */
+  .mark-labelA{
+    top: 10px;
   }
 
   .mark-labelB{
-    top: -34px;    /* bocadillo B: encima de la línea de tiempo */
+    top: -34px;
   }
 
-.time-label{
+  .time-label{
     position:absolute;
     padding:4px 8px;
     font-size:11px;
@@ -122,14 +122,14 @@
   }
   .time-label-start{
     left:0;
-    top:-21px;    /* bocadillo inicio: bajo la línea de tiempo, al inicio */
+    top:-21px;
   }
   .time-label-end{
     right:0;
-    top:24px;    /* bocadillo final: bajo la línea de tiempo, al final */
+    top:24px;
   }
 
-.ab-range{
+  .ab-range{
     position:absolute;
     top:50%;
     transform:translateY(-50%);
@@ -143,7 +143,22 @@
   .ab-range.show{opacity:1}
   .ab-range.loop-active{filter:blur(3px);}
 
-  .info{position:absolute;right:12px;top:12px;z-index:25;max-width:min(92vw,520px);background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);padding:12px 14px;border-radius:12px;backdrop-filter:blur(4px);display:none;line-height:1.35}
+  .info{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    z-index:25;
+    max-width:min(92vw,520px);
+    background:rgba(0,0,0,.75);
+    color:#fff;
+    border:1px solid rgba(255,255,255,.35);
+    padding:16px 18px;
+    border-radius:14px;
+    backdrop-filter:blur(6px);
+    display:none;
+    line-height:1.35;
+  }
   .info h3{margin:.2rem 0 .6rem;font-size:14px;opacity:.95}
   .info p{margin:.25rem 0;font-size:13px;opacity:.95;white-space:pre-line}
   .hidden{display:none!important}
@@ -196,7 +211,72 @@
     border:none
   }
 
-  /* Tooltips de botones (negros, como antes) */
+  .img-pop{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:30;
+  }
+  .img-pop-inner{
+    background:rgba(0,0,0,.7);
+    border:1px solid rgba(255,255,255,.3);
+    border-radius:14px;
+    padding:16px 20px;
+    backdrop-filter:blur(6px);
+    min-width:260px;
+    max-width:320px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color:#fff;
+    font-size:13px;
+  }
+  .img-pop-title{
+    font-size:14px;
+    margin-bottom:4px;
+    opacity:.95;
+    text-align:center;
+  }
+  .img-pop-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .img-pop-row span{
+    min-width:90px;
+  }
+  .img-pop-row input[type=range]{
+    flex:1;
+    appearance:none;
+    background:transparent;
+  }
+  .img-pop-row input[type=range]::-webkit-slider-runnable-track{
+    height:2px;
+    background:#ffffff66;
+    border-radius:4px;
+  }
+  .img-pop-row input[type=range]::-webkit-slider-thumb{
+    appearance:none;
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    margin-top:-6px;
+    box-shadow:0 0 0 2px rgba(255,255,255,.35);
+  }
+  .img-pop-row input[type=range]::-moz-range-track{
+    height:2px;
+    background:#ffffff66;
+    border-radius:4px;
+  }
+  .img-pop-row input[type=range]::-moz-range-thumb{
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    border:none;
+  }
+
   .btn[data-tip]::before{
     content:attr(data-tip);
     position:absolute;
@@ -217,7 +297,6 @@
     opacity:1;
   }
 
-  /* Estados de visibilidad de la interfaz para inactividad */
   .ui-visible{
     opacity:1;
     transition:opacity 2s ease-out;
@@ -228,13 +307,9 @@
     pointer-events:none;
   }
 
-    /* Información de marcas integrada en los triángulos (mark-label) */
-
 </style>
 </head>
 <body>
-
-<div class="brand ui-visible">CursoPlayerWeb — © 2025 Fran Falcón</div>
 
 <div class="file-name ui-visible" id="fileNameLabel"></div>
 
@@ -264,7 +339,6 @@
 </div>
 
 <div class="ctrls ui-visible" id="ctrls">
-  <!-- Fila superior: utilidades generales -->
   <div class="ctrl-row">
     <div class="btn" id="open" data-tip="Abrir vídeo">
       <svg viewBox="0 0 24 24">
@@ -304,7 +378,6 @@
     </div>
   </div>
 
-  <!-- Fila central: control de velocidad -->
   <div class="ctrl-row">
     <div class="btn" id="speedDown" data-tip="Velocidad -">
       <svg viewBox="0 0 24 24">
@@ -317,9 +390,16 @@
         <path d="M12 5v14M5 12h14"/>
       </svg>
     </div>
+    <div class="btn" id="imageAdjustBtn" data-tip="Ajustes de imagen">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 7h16M4 12h16M4 17h16"/>
+        <circle cx="9" cy="7" r="1.5"/>
+        <circle cx="15" cy="12" r="1.5"/>
+        <circle cx="11" cy="17" r="1.5"/>
+      </svg>
+    </div>
   </div>
 
-  <!-- Fila inferior: reproducción y bucles -->
   <div class="ctrl-row">
     <div class="btn" id="play" data-tip="Reproducir / Pausa">
       <svg id="playIcon" viewBox="0 0 24 24">
@@ -354,6 +434,24 @@
   </div>
 </div>
 
+<div class="img-pop ui-visible" id="imgPop">
+  <div class="img-pop-inner">
+    <div class="img-pop-title">Ajustes de imagen</div>
+    <div class="img-pop-row">
+      <span>Contraste</span>
+      <input id="contrastRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Brillo</span>
+      <input id="brightRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Saturación</span>
+      <input id="saturRange" type="range" min="0" max="200" value="100">
+    </div>
+  </div>
+</div>
+
 <script>
 const vid = document.querySelector("#vid");
 const file = document.querySelector("#file");
@@ -367,8 +465,8 @@ const markBEl = document.querySelector("#markB");
 const abRange = document.querySelector("#abRange");
 const timeStartLabel = document.querySelector("#timeStartLabel");
 const timeEndLabel = document.querySelector("#timeEndLabel");
-const brand = document.querySelector(".brand");
 const fileNameLabel = document.querySelector("#fileNameLabel");
+const APP_TITLE = "CursoPlayerWeb © 2025 Fran Falcón";
 const ctrls = document.querySelector("#ctrls");
 const markALabel = document.createElement("div");
 markALabel.className = "mark-label mark-labelA";
@@ -377,8 +475,8 @@ const markBLabel = document.createElement("div");
 markBLabel.className = "mark-label mark-labelB";
 markBEl.appendChild(markBLabel);
 
-
 const openBtn   = document.querySelector("#open");
+const zoomBtn   = document.querySelector("#zoomBtn");
 const playBtn   = document.querySelector("#play");
 const playShape = document.querySelector("#playShape");
 const mirrorBtn = document.querySelector("#mirror");
@@ -397,24 +495,31 @@ const volRange  = document.querySelector("#volRange");
 const fsBtn     = document.querySelector("#fs");
 const autoHideBtn = document.querySelector("#autoHideBtn");
 
+const imageAdjustBtn = document.querySelector("#imageAdjustBtn");
+const imgPop = document.querySelector("#imgPop");
+const contrastRange = document.querySelector("#contrastRange");
+const brightRange = document.querySelector("#brightRange");
+const saturRange = document.querySelector("#saturRange");
+
 let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
 let zoomLevel = 1;
-let autoHideEnabled = true;
+let autoHideEnabled = false;
 let autoHideWasEnabledBeforeInfo = false;
-const MIN_AB_GAP = 0.2; // separación mínima en segundos entre A y B
+const MIN_AB_GAP = 0.2;
 let isSeeking=false;
 let draggingMark = null;
 let currentFile = null;
 
-// anti guardado básico
+let contrast = 1;
+let brightness = 1;
+let saturation = 1;
+
 document.addEventListener("contextmenu",(e)=>e.preventDefault(),{passive:false});
 document.addEventListener("keydown",(e)=>{
-  // Bloqueo de atajos de guardado/impresión
   if((e.ctrlKey||e.metaKey) && (["s","p","u","S","P","U"].includes(e.key))){
     e.preventDefault();
     return;
   }
-  // Flechas izquierda/derecha: desplazamiento de 10 segundos
   if(e.key === "ArrowLeft"){
     e.preventDefault();
     seekRelative(-10);
@@ -425,7 +530,6 @@ document.addEventListener("keydown",(e)=>{
     seekRelative(10);
     return;
   }
-  // F11: pantalla completa usando la misma lógica que el botón
   if(e.key === "F11"){
     e.preventDefault();
     toggleFS();
@@ -437,7 +541,6 @@ function pulse(el){
   el.classList.remove("pulse");void el.offsetWidth;el.classList.add("pulse");
 }
 
-/* Estados de UI dependientes de rate */
 function updateRateUI(){
   rateLabel.textContent = rate.toFixed(2)+"×";
   const isNormal = Math.abs(rate-1) < 0.001;
@@ -446,7 +549,6 @@ function updateRateUI(){
   speedUpBtn.classList.toggle("active", rate > 1);
 }
 
-/* Estado del botón de volumen */
 function updateVolumeUI(){
   volumeBtn.classList.toggle("active", vid.volume > 0);
 }
@@ -464,6 +566,17 @@ function updateZoomUI(){
   applyVideoTransform();
 }
 
+function updateVideoFilters(){
+  vid.style.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+  const isDefault =
+    Math.abs(contrast-1) < 0.01 &&
+    Math.abs(saturation-1) < 0.01 &&
+    Math.abs(brightness-1) < 0.01;
+  if(imageAdjustBtn){
+    imageAdjustBtn.classList.toggle("active", !isDefault);
+  }
+}
+
 function updateTimeLabels(){
   const cur = vid.currentTime || 0;
   const total = (vid.duration && isFinite(vid.duration)) ? vid.duration : 0;
@@ -476,7 +589,6 @@ function updateLoopBtnState(){
   loopBtn.classList.toggle("active", hasMarks);
 }
 
-/* Formato de tiempo: hh:mm:ss.d (décima) */
 function formatTimeWithTenths(t){
   if(t == null || !isFinite(t)) return "";
   const total = Math.max(0, t);
@@ -490,7 +602,6 @@ function formatTimeWithTenths(t){
          tenths;
 }
 
-/* Abrir archivo: activo mientras está el diálogo */
 openBtn.onclick = ()=>{
   pulse(openBtn);
   openBtn.classList.add("active");
@@ -499,20 +610,22 @@ openBtn.onclick = ()=>{
 
 zoomBtn.onclick = ()=>{
   pulse(zoomBtn);
-  // ciclo de zoom: 1 -> 1.25 -> 1.5 -> 2 -> 1 ...
   const levels = [1, 1.25, 1.5, 2];
   const currentIndex = levels.findIndex(v => Math.abs(v - zoomLevel) < 0.001);
   const nextIndex = (currentIndex + 1) % levels.length;
   zoomLevel = levels[nextIndex];
   updateZoomUI();
 };
+
 file.onchange = e=>{
   openBtn.classList.remove("active");
   const f = e.target.files[0];
   if(f){
     currentFile = f;
     if(fileNameLabel){
-      fileNameLabel.textContent = currentFile.name || "(archivo local)";
+      const fullName = currentFile.name || "(archivo local)";
+      const baseName = fullName.replace(/\.[^.]+$/, "");
+      fileNameLabel.textContent = APP_TITLE + " · " + baseName;
     }
     vid.src = URL.createObjectURL(f);
     vid.play();
@@ -520,15 +633,11 @@ file.onchange = e=>{
   }
 };
 
-// Info toggle con interacción con auto-ocultado
 infoBtn.onclick=()=>{
   pulse(infoBtn);
   if(infoPanel.style.display==="block"){
-    // Cerrar panel de información
     infoPanel.style.display="none";
     infoBtn.classList.remove("active");
-
-    // Si el auto-ocultado estaba activo antes de abrir info, lo reactivamos
     if(autoHideWasEnabledBeforeInfo){
       autoHideEnabled = true;
       autoHideWasEnabledBeforeInfo = false;
@@ -540,12 +649,15 @@ infoBtn.onclick=()=>{
       }
     }
   }else{
-    // Abrir panel de información
     updateInfoMeta();
     infoPanel.style.display="block";
     infoBtn.classList.add("active");
-
-    // Si el auto-ocultado está activo, lo desactivamos temporalmente
+    if(imgPop){
+      imgPop.style.display = "none";
+      if(imageAdjustBtn){
+        imageAdjustBtn.classList.remove("active");
+      }
+    }
     if(autoHideEnabled){
       autoHideWasEnabledBeforeInfo = true;
       autoHideEnabled = false;
@@ -593,42 +705,18 @@ function updateInfoMeta(){
   }
   infoMeta.textContent = lines.join("\n");
 
-  const about=[
-"CursoPlayerWeb – Herramienta didáctica para bailarines",
-"© 2025 Francisco Javier Falcón Muñoz",
-"",
-"CursoPlayerWeb es una herramienta creada para que cualquier bailarín pueda analizar, estudiar y perfeccionar sus movimientos utilizando vídeos de clases presenciales, redes sociales, congresos o tutoriales. Convierte cualquier grabación en una clase personalizada, permitiéndote observar detalles, corregir técnica y entrenar con precisión.",
-"",
-"Funciones principales orientadas al aprendizaje:",
-"• Control de velocidad ultrafino (0.10× a 3.00×)",
-"• Marcas A-B y bucle automático",
-"• Barra de tiempo precisa con clic y arrastre",
-"• Modo Espejo para copiar al profesor como si estuviera frente a ti",
-"• Zoom progresivo para centrarte en la zona útil del vídeo",
-"• Pantalla completa optimizada",
-"• Fondo difuminado inteligente",
-"• Control de volumen contextual",
-"",
-"Beneficios didácticos:",
-"• Aprendizaje más rápido gracias a la repetición exacta de los segundos que realmente necesitas",
-"• Corrección técnica analizando tus propios vídeos",
-"• Mejor comprensión de la musicalidad",
-"• Memoria corporal más sólida",
-"• Entrena en cualquier lugar sin instalar nada",
-"",
-"CursoPlayerWeb transforma cualquier vídeo en una herramienta profesional de estudio."
-].join("\n");
-aboutMeta.textContent = about;
+  if(aboutMeta){
+    aboutMeta.textContent = "";
+  }
 }
 
-// Play / pausa + estado activo
 playBtn.onclick=()=>{
   pulse(playBtn);
   if(vid.paused){vid.play();}
   else{vid.pause();}
 };
 vid.addEventListener("play",()=>{
-  playShape.setAttribute("d","M7 5h4v14H7zM13 5h4v14h-4z");
+  playShape.setAttribute("d","M9 5h2.5v14H9zM12.5 5h2.5v14h-2.5z");
   playBtn.classList.add("active");
 });
 vid.addEventListener("pause",()=>{
@@ -636,7 +724,6 @@ vid.addEventListener("pause",()=>{
   playBtn.classList.remove("active");
 });
 
-// Pantalla completa + estado activo
 fsBtn.onclick=()=>{
   pulse(fsBtn);
   toggleFS();
@@ -645,7 +732,6 @@ document.addEventListener("fullscreenchange",()=>{
   fsBtn.classList.toggle("active", !!document.fullscreenElement);
 });
 
-// Espejo
 mirrorBtn.onclick=()=>{
   isMirrored = !isMirrored;
   mirrorBtn.classList.toggle("active", isMirrored);
@@ -653,7 +739,6 @@ mirrorBtn.onclick=()=>{
   applyVideoTransform();
 };
 
-// Velocidad
 document.querySelector("#speedDown").onclick=()=>{
   pulse(speedDownBtn);
   rate = Math.max(.1, +(rate-.1).toFixed(2));
@@ -673,7 +758,6 @@ rateLabel.onclick=()=>{
   updateRateUI();
 };
 
-// Marcas A y B automáticas via botón de bucle
 clearABBtn.onclick=()=>{
   A=null;B=null;
   loopAB=false;
@@ -684,7 +768,6 @@ clearABBtn.onclick=()=>{
   updateProgressUI();
 };
 loopBtn.onclick=()=>{
-  // Si las marcas ya están establecidas, no hacer nada
   if(A != null && B != null){
     return;
   }
@@ -701,7 +784,6 @@ loopBtn.onclick=()=>{
   updateProgressUI();
 };
 
-// Volumen
 volumeBtn.onclick=(e)=>{
   pulse(volumeBtn);
   e.stopPropagation();
@@ -728,7 +810,6 @@ volRange.addEventListener("pointerdown",(e)=>{
 document.addEventListener("click",(e)=>{
   if(!volumeBtn.contains(e.target)) volPop.style.display="none";
 });
-
 volPop.addEventListener("wheel",(e)=>{
   e.preventDefault();
   const step = 0.05;
@@ -747,8 +828,6 @@ function seekRelative(delta){
   let t = vid.currentTime + delta;
   if(t < 0) t = 0;
   if(vid.duration && isFinite(vid.duration) && t > vid.duration) t = vid.duration;
-
-  // Si el bucle A-B está activo y salimos del rango, volvemos a A
   if(loopAB && A!=null && B!=null){
     const a = Math.min(A,B);
     const b = Math.max(A,B);
@@ -756,7 +835,6 @@ function seekRelative(delta){
       t = A;
     }
   }
-
   vid.currentTime = t;
   updateProgressUI();
 }
@@ -782,7 +860,6 @@ function pctToTime(p){
 }
 
 function updateMarks(){
-  // Posición visual
   if(A!=null){
     markAEl.style.left = timeToPct(A)+"%";
     markAEl.classList.add("show");
@@ -803,7 +880,6 @@ function updateMarks(){
     markBLabel.textContent = "";
   }
 
-  // Rango A-B
   if(A!=null && B!=null){
     const a=Math.min(A,B), b=Math.max(A,B);
     const left=timeToPct(a), right=timeToPct(b);
@@ -832,7 +908,6 @@ vid.addEventListener("timeupdate",()=>{
 });
 
 vid.addEventListener("ended",()=>{
-  // Aseguramos bucle continuo tanto con marcas A-B como sin ellas
   if(loopAB && A!=null && B!=null && B>A){
     vid.currentTime = A;
     vid.play();
@@ -887,7 +962,6 @@ vid.addEventListener("loadedmetadata",()=>{
 });
 window.addEventListener("resize",updateProgressUI);
 
-/* Seek por clic y arrastre */
 function setTimeFromClientX(clientX){
   const r = inner.getBoundingClientRect();
   let x = Math.max(r.left,Math.min(clientX,r.right));
@@ -900,7 +974,6 @@ function setTimeFromClientX(clientX){
   if(loopAB && A!=null && B!=null){
     const a = Math.min(A,B);
     const b = Math.max(A,B);
-    // Si el clic está fuera de A-B, se ignora
     if(candidate < a || candidate > b){
       return;
     }
@@ -923,7 +996,6 @@ seek.addEventListener("pointerup",(e)=>{
 });
 seek.addEventListener("pointercancel",()=>{isSeeking=false;});
 
-/* Arrastre de marcas A y B con zona de marcación */
 function onMarkPointerDown(e,which){
   if(!(vid.duration && isFinite(vid.duration))) return;
   e.stopPropagation();
@@ -939,12 +1011,10 @@ function onMarkPointerMove(e){
   let t = pctToTime(p);
 
   if(!(vid.duration && isFinite(vid.duration))) return;
-  // Aseguramos que el tiempo esté dentro del rango del vídeo
   if(t < 0) t = 0;
   if(t > vid.duration) t = vid.duration;
 
   if(draggingMark==="A"){
-    // A nunca puede superar a B - MIN_AB_GAP
     if(B != null){
       const maxA = B - MIN_AB_GAP;
       if(t > maxA) t = Math.max(0, maxA);
@@ -952,7 +1022,6 @@ function onMarkPointerMove(e){
     A = t;
   }
   if(draggingMark==="B"){
-    // B nunca puede ser inferior a A + MIN_AB_GAP
     if(A != null){
       const minB = A + MIN_AB_GAP;
       if(t < minB) t = Math.min(vid.duration, minB);
@@ -975,48 +1044,87 @@ function onMarkPointerUp(e){
   }
 }
 ["pointerdown"].forEach(ev=>{
-  markAEl.addEventListener(ev,(e)=>onMarkPointerDown(e,"A"));
-  markBEl.addEventListener(ev,(e)=>onMarkPointerDown(e,"B"));
+  [markAEl, markALabel].forEach(el=>{
+    if(el) el.addEventListener(ev,(e)=>onMarkPointerDown(e,"A"));
+  });
+  [markBEl, markBLabel].forEach(el=>{
+    if(el) el.addEventListener(ev,(e)=>onMarkPointerDown(e,"B"));
+  });
 });
 ["pointermove"].forEach(ev=>{
-  markAEl.addEventListener(ev,onMarkPointerMove);
-  markBEl.addEventListener(ev,onMarkPointerMove);
+  [markAEl, markALabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerMove);
+  });
+  [markBEl, markBLabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerMove);
+  });
 });
 ["pointerup","pointercancel"].forEach(ev=>{
-  markAEl.addEventListener(ev,onMarkPointerUp);
-  markBEl.addEventListener(ev,onMarkPointerUp);
+  [markAEl, markALabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerUp);
+  });
+  [markBEl, markBLabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerUp);
+  });
 });
 
 
-// Gestión de inactividad: ocultar/mostrar interfaz
+function attachTouchDragToMark(el, which){
+  if(!el) return;
+  el.addEventListener("touchstart",(e)=>{
+    if(!(vid.duration && isFinite(vid.duration))) return;
+    const t = e.touches[0];
+    draggingMark = which;
+    e.preventDefault();
+    onMarkPointerMove({ clientX: t.clientX });
+  },{passive:false});
+  el.addEventListener("touchmove",(e)=>{
+    if(!draggingMark) return;
+    const t = e.touches[0];
+    e.preventDefault();
+    onMarkPointerMove({ clientX: t.clientX });
+  },{passive:false});
+  el.addEventListener("touchend",(e)=>{
+    e.preventDefault();
+    draggingMark=null;
+  },{passive:false});
+  el.addEventListener("touchcancel",(e)=>{
+    e.preventDefault();
+    draggingMark=null;
+  },{passive:false});
+}
+
+attachTouchDragToMark(markALabel,"A");
+attachTouchDragToMark(markAEl,"A");
+attachTouchDragToMark(markBLabel,"B");
+attachTouchDragToMark(markBEl,"B");
+
 let inactivityTimeout = null;
-const INACTIVITY_DELAY = 3000; // 3 segundos sin interacción
+const INACTIVITY_DELAY = 3000;
 
 function hideUI(){
   if(!autoHideEnabled) return;
   if(ctrls) { ctrls.classList.remove("ui-visible"); ctrls.classList.add("ui-hidden"); }
   if(seek)  { seek.classList.remove("ui-visible");  seek.classList.add("ui-hidden"); }
-  if(brand) { brand.classList.remove("ui-visible"); brand.classList.add("ui-hidden"); }
   if(fileNameLabel){ fileNameLabel.classList.remove("ui-visible"); fileNameLabel.classList.add("ui-hidden"); }
 
-  // Cerrar panel de información y apagar botón
   if(infoPanel){
     infoPanel.style.display = "none";
   }
   if(infoBtn){
     infoBtn.classList.remove("active");
   }
-
-  // Cerrar popup de volumen
   if(volPop){
     volPop.style.display = "none";
+  }
+  if(imgPop){
+    imgPop.style.display = "none";
   }
 }
 
 function showUI(){
   if(ctrls) { ctrls.classList.remove("ui-hidden"); ctrls.classList.add("ui-visible"); }
   if(seek)  { seek.classList.remove("ui-hidden");  seek.classList.add("ui-visible"); }
-  if(brand) { brand.classList.remove("ui-hidden"); brand.classList.add("ui-visible"); }
   if(fileNameLabel){ fileNameLabel.classList.remove("ui-hidden"); fileNameLabel.classList.add("ui-visible"); }
 }
 
@@ -1027,10 +1135,8 @@ function resetInactivityTimer(){
   inactivityTimeout = setTimeout(hideUI, INACTIVITY_DELAY);
 }
 
-
-// Botón para activar/desactivar el auto-ocultado de controles
 if(autoHideBtn){
-  autoHideBtn.classList.add("active"); // por defecto, auto-ocultado activo
+  autoHideBtn.classList.toggle("active", autoHideEnabled);
   autoHideBtn.onclick = ()=>{
     pulse(autoHideBtn);
     autoHideEnabled = !autoHideEnabled;
@@ -1047,15 +1153,56 @@ if(autoHideBtn){
   };
 }
 
-// Eventos que cuentan como actividad del usuario
 ["mousemove","mousedown","keydown","wheel","touchstart","pointermove"].forEach(ev=>{
   document.addEventListener(ev, resetInactivityTimer, {passive:true});
 });
 
-// Iniciar temporizador de inactividad al cargar
+if(imageAdjustBtn && imgPop){
+  imageAdjustBtn.onclick = (e)=>{
+    pulse(imageAdjustBtn);
+    e.stopPropagation();
+    const isOpen = imgPop.style.display === "flex";
+    if(isOpen){
+      imgPop.style.display = "none";
+    }else{
+      imgPop.style.display = "flex";
+    }
+    if(infoPanel){
+      infoPanel.style.display = "none";
+      if(infoBtn){
+        infoBtn.classList.remove("active");
+      }
+    }
+  };
+}
+if(imgPop){
+  imgPop.addEventListener("click",(e)=>{
+    if(e.target === imgPop){
+      imgPop.style.display = "none";
+    }
+  });
+}
+if(contrastRange){
+  contrastRange.addEventListener("input",(e)=>{
+    contrast = parseInt(e.target.value,10) / 100;
+    updateVideoFilters();
+  });
+}
+if(brightRange){
+  brightRange.addEventListener("input",(e)=>{
+    brightness = parseInt(e.target.value,10) / 100;
+    updateVideoFilters();
+  });
+}
+if(saturRange){
+  saturRange.addEventListener("input",(e)=>{
+    saturation = parseInt(e.target.value,10) / 100;
+    updateVideoFilters();
+  });
+}
+
 resetInactivityTimer();
 
-// Inicializar estados
 rate = 1;
 vid.playbackRate = 1;
 volRange.value = vid.volume;
@@ -1063,6 +1210,9 @@ updateRateUI();
 updateVolumeUI();
 updateInfoMeta();
 updateProgressUI();
+updateVideoFilters();
+if(fileNameLabel) fileNameLabel.textContent = APP_TITLE;
+applyVideoTransform();
 </script>
 
 </body>
