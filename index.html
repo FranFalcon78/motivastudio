@@ -3,11 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CursoPlayer Minimal (Rev 48)</title>
+<title>CursoPlayer Minimal (Rev 56)</title>
 <style>
+  :root{
+    --btn-bg: rgba(255,255,255,.18);
+    --btn-bg-hover: rgba(255,255,255,.28);
+    --btn-border: rgba(255,255,255,.25);
+  }
   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
   .bg-frame{position:fixed;inset:0;z-index:-1;background:#000 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
+  .splash{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:9;
+    pointer-events:none;
+    color:#fff;
+    text-align:center;
+    opacity:1;
+    transition:opacity .4s ease-out;
+  }
+  .splash-logo{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.7);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:40px;
+    font-weight:600;
+    margin-bottom:12px;
+    box-shadow:0 0 18px rgba(255,255,255,.25);
+  }
+  .splash-title{
+    font-size:28px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  .splash-subtitle{
+    font-size:13px;
+    opacity:.85;
+    max-width:60vw;
+  }
+
 .file-name{
   position:absolute;
   top:10px;
@@ -44,11 +88,11 @@
     align-items:center;
     gap:.8rem;
   }
-  .btn{min-width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.25);position:relative;color:#fff}
-  .btn:hover{background:rgba(255,255,255,.28)}
+  .btn{min-width:42px;height:42px;border-radius:50%;background:var(--btn-bg);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid var(--btn-border);position:relative;color:#fff}
+  .btn:hover{background:var(--btn-bg-hover)}
   .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
   #playIcon path{fill:#fff;stroke:none;}
-  .btn--text{min-width:72px;width:auto;padding:0 .6rem;border-radius:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;opacity:.95;text-align:center;cursor:pointer}
+  .btn--text{min-width:72px;width:auto;padding:0 .6rem;border-radius:10px;background:var(--btn-bg);border:1px solid var(--btn-border);color:#fff;opacity:.95;text-align:center;cursor:pointer}
   .active{box-shadow:0 0 0 2px rgba(255,255,255,.55) inset,0 0 12px rgba(255,255,255,.35)}
   .active svg{opacity:1}
   input[type=file]{display:none}
@@ -57,8 +101,8 @@
 
   .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer;touch-action:none}
   .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px;touch-action:none}
-  .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:#ffffffcc;border-radius:2px;pointer-events:none}
-  .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:rgba(255,255,255,.35);border-radius:6px;width:0%;pointer-events:none}
+  .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:var(--btn-border);border-radius:2px;pointer-events:none}
+  .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:var(--btn-bg);border-radius:6px;width:0%;pointer-events:none}
   .dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);left:0%;pointer-events:none}
 
   .mark{
@@ -79,7 +123,7 @@
     transform:translate(-50%,-50%);
     width:2px;
     height:22px;
-    background:#ffffffee;
+    background:var(--btn-border);
     border-radius:2px;
     box-shadow:0 0 6px rgba(255,255,255,.35);
   }
@@ -90,8 +134,8 @@
     transform:translateX(-50%);
     padding:4px 8px;
     font-size:11px;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
     border-radius:10px;
     color:#fff;
     white-space:nowrap;
@@ -112,8 +156,8 @@
     position:absolute;
     padding:4px 8px;
     font-size:11px;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
     border-radius:10px;
     color:#fff;
     white-space:nowrap;
@@ -145,22 +189,29 @@
 
   .info{
     position:fixed;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    z-index:25;
-    max-width:min(92vw,520px);
-    background:rgba(0,0,0,.75);
-    color:#fff;
-    border:1px solid rgba(255,255,255,.35);
-    padding:16px 18px;
-    border-radius:14px;
-    backdrop-filter:blur(6px);
+    inset:0;
     display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:32;
+  }
+  .info-inner{
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    border-radius:14px;
+    padding:16px 20px;
+    backdrop-filter:blur(6px);
+    min-width:260px;
+    max-width:520px;
+    color:#fff;
+    font-size:13px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
     line-height:1.35;
   }
-  .info h3{margin:.2rem 0 .6rem;font-size:14px;opacity:.95}
-  .info p{margin:.25rem 0;font-size:13px;opacity:.95;white-space:pre-line}
+  .info-inner h3{margin:.2rem 0 .4rem;font-size:14px;opacity:.95}
+  .info-inner p{margin:.25rem 0;font-size:13px;opacity:.95;white-space:pre-line}
   .hidden{display:none!important}
 
   .vol-pop{
@@ -172,8 +223,8 @@
     z-index:32;
   }
   .vol-pop-inner{
-    background:rgba(0,0,0,.7);
-    border:1px solid rgba(255,255,255,.3);
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
     border-radius:14px;
     padding:16px 20px;
     backdrop-filter:blur(6px);
@@ -238,8 +289,8 @@
     z-index:30;
   }
   .img-pop-inner{
-    background:rgba(0,0,0,.7);
-    border:1px solid rgba(255,255,255,.3);
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
     border-radius:14px;
     padding:16px 20px;
     backdrop-filter:blur(6px);
@@ -329,6 +380,12 @@
 </head>
 <body>
 
+<div id="splash" class="splash">
+  <div class="splash-logo">M</div>
+  <div class="splash-title">Motiva Player</div>
+  <div class="splash-subtitle">Estudia el movimiento en profundidad</div>
+</div>
+
 <div class="file-name ui-visible" id="fileNameLabel"></div>
 
 <div id="bgFrame" class="bg-frame"></div>
@@ -350,10 +407,12 @@
 </div>
 
 <div class="info ui-visible" id="infoPanel">
-  <h3>Información del archivo</h3>
-  <p id="infoMeta">Abre un vídeo para ver los detalles.</p>
-  <h3>Acerca de</h3>
-  <p id="aboutMeta"></p>
+  <div class="info-inner">
+    <h3>Información del archivo</h3>
+    <p id="infoMeta">Abre un vídeo para ver los detalles.</p>
+    <h3>Acerca de</h3>
+    <p id="aboutMeta"></p>
+  </div>
 </div>
 
 <div class="ctrls ui-visible" id="ctrls">
@@ -390,13 +449,16 @@
         <path d="M3 10h4l5-4v12l-5-4H3z"/>
         <path d="M16 8a4 4 0 0 1 0 8"/>
       </svg>
-      <div class="vol-pop ui-visible" id="volPop">
-        <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
-      </div>
     </div>
   </div>
 
   <div class="ctrl-row">
+    <div class="btn" id="styleBtn" data-tip="Estilo de interfaz">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="6"/>
+        <path d="M4 12h4M16 12h4M12 4v4M12 16v4"/>
+      </svg>
+    </div>
     <div class="btn" id="speedDown" data-tip="Velocidad -">
       <svg viewBox="0 0 24 24">
         <path d="M5 12h14"/>
@@ -477,22 +539,26 @@
       <span>Volumen</span>
       <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
     </div>
-    <div class="vol-pop-row">
-      <span>Balance</span>
-      <input id="balanceRange" type="range" min="-1" max="1" step="0.01" value="0">
-    </div>
-    <div class="vol-pop-row">
-      <span>Graves</span>
-      <input id="bassRange" type="range" min="0" max="1" step="0.01" value="0.5">
+  </div>
+</div>
+
+<div class="img-pop ui-visible" id="stylePop">
+  <div class="img-pop-inner">
+    <div class="img-pop-title">Estilo de la interfaz</div>
+    <div class="img-pop-row">
+      <span>Transparencia</span>
+      <input id="darknessRange" type="range" min="0" max="30" value="6">
     </div>
   </div>
 </div>
+
 
 <script>
 const vid = document.querySelector("#vid");
 const file = document.querySelector("#file");
 const seek = document.querySelector("#seek");
 const bgFrame = document.querySelector("#bgFrame");
+const splash = document.querySelector("#splash");
 const inner = document.querySelector("#seekInner");
 const trail = document.querySelector("#trail");
 const dot = document.querySelector("#dot");
@@ -502,7 +568,7 @@ const abRange = document.querySelector("#abRange");
 const timeStartLabel = document.querySelector("#timeStartLabel");
 const timeEndLabel = document.querySelector("#timeEndLabel");
 const fileNameLabel = document.querySelector("#fileNameLabel");
-const APP_TITLE = "CursoPlayerWeb © 2025 Fran Falcón";
+const APP_TITLE = "Motiva Player © 2025 Fran Falcón";
 const ctrls = document.querySelector("#ctrls");
 const markALabel = document.createElement("div");
 markALabel.className = "mark-label mark-labelA";
@@ -528,8 +594,9 @@ const aboutMeta = document.querySelector("#aboutMeta");
 const volumeBtn = document.querySelector("#volumeBtn");
 const volPop    = document.querySelector("#volPop");
 const volRange  = document.querySelector("#volRange");
-const balanceRange = document.querySelector("#balanceRange");
-const bassRange = document.querySelector("#bassRange");
+const styleBtn  = document.querySelector("#styleBtn");
+const stylePop  = document.querySelector("#stylePop");
+const darknessRange = document.querySelector("#darknessRange");
 const fsBtn     = document.querySelector("#fs");
 const autoHideBtn = document.querySelector("#autoHideBtn");
 
@@ -543,6 +610,19 @@ let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
 let zoomLevel = 1;
 let autoHideEnabled = false;
 let autoHideWasEnabledBeforeInfo = false;
+
+function restoreAutoHideIfNeeded(){
+  if(autoHideWasEnabledBeforeInfo){
+    autoHideEnabled = true;
+    autoHideWasEnabledBeforeInfo = false;
+    if(autoHideBtn){
+      autoHideBtn.classList.add("active");
+    }
+    if(typeof resetInactivityTimer === "function"){
+      resetInactivityTimer();
+    }
+  }
+}
 const MIN_AB_GAP = 0.2;
 let isSeeking=false;
 let draggingMark = null;
@@ -660,28 +740,25 @@ file.onchange = e=>{
     }
     vid.src = URL.createObjectURL(f);
     vid.play();
+    if(splash){
+      splash.style.opacity = "0";
+      // aunque la capa ya no intercepta eventos, la ocultamos tras la animación
+      setTimeout(()=>{ if(splash){ splash.style.display = "none"; } }, 450);
+    }
     setTimeout(updateInfoMeta,200);
   }
 };
 
 infoBtn.onclick=()=>{
   pulse(infoBtn);
-  if(infoPanel.style.display==="block"){
-    infoPanel.style.display="none";
+  const isOpen = infoPanel.style.display === "flex";
+  if(isOpen){
+    infoPanel.style.display = "none";
     infoBtn.classList.remove("active");
-    if(autoHideWasEnabledBeforeInfo){
-      autoHideEnabled = true;
-      autoHideWasEnabledBeforeInfo = false;
-      if(autoHideBtn){
-        autoHideBtn.classList.add("active");
-      }
-      if(typeof resetInactivityTimer === "function"){
-        resetInactivityTimer();
-      }
-    }
+    restoreAutoHideIfNeeded();
   }else{
     updateInfoMeta();
-    infoPanel.style.display="block";
+    infoPanel.style.display = "flex";
     infoBtn.classList.add("active");
     if(imgPop){
       imgPop.style.display = "none";
@@ -693,6 +770,12 @@ infoBtn.onclick=()=>{
       volPop.style.display = "none";
       if(volumeBtn){
         volumeBtn.classList.remove("active");
+      }
+    }
+    if(stylePop){
+      stylePop.style.display = "none";
+      if(styleBtn){
+        styleBtn.classList.remove("active");
       }
     }
     if(autoHideEnabled){
@@ -824,7 +907,7 @@ loopBtn.onclick=()=>{
 volumeBtn.onclick=(e)=>{
   pulse(volumeBtn);
   e.stopPropagation();
-  const isOpen = volPop.style.display==="flex";
+  const isOpen = volPop.style.display === "flex";
   if(isOpen){
     volPop.style.display = "none";
     volumeBtn.classList.remove("active");
@@ -837,10 +920,10 @@ volumeBtn.onclick=(e)=>{
         imageAdjustBtn.classList.remove("active");
       }
     }
-    if(volPop){
-      volPop.style.display = "none";
-      if(volumeBtn){
-        volumeBtn.classList.remove("active");
+    if(stylePop){
+      stylePop.style.display = "none";
+      if(styleBtn){
+        styleBtn.classList.remove("active");
       }
     }
     if(infoPanel){
@@ -848,6 +931,7 @@ volumeBtn.onclick=(e)=>{
       if(infoBtn){
         infoBtn.classList.remove("active");
       }
+      restoreAutoHideIfNeeded();
     }
   }
 };
@@ -1017,6 +1101,7 @@ vid.addEventListener("loadedmetadata",()=>{
   updateProgressUI();
   updateTimeLabels();
   maybeGenerateBackground();
+  if(splash){ splash.style.opacity = "0"; setTimeout(()=>{ if(splash){ splash.style.display="none"; } }, 450); }
 });
 window.addEventListener("resize",updateProgressUI);
 
@@ -1159,22 +1244,13 @@ attachTouchDragToMark(markAEl,"A");
 attachTouchDragToMark(markBLabel,"B");
 attachTouchDragToMark(markBEl,"B");
 
-document.addEventListener("click",(e)=>{
-  if(infoPanel.style.display === "block"){
-    if(!infoPanel.contains(e.target) && !infoBtn.contains(e.target)){
-      infoPanel.style.display = "none";
-      infoBtn.classList.remove("active");
-    }
-  }
-});
 let inactivityTimeout = null;
 const INACTIVITY_DELAY = 3000;
 
 function hideUI(){
   if(!autoHideEnabled) return;
+  // Solo ocultamos los controles centrales; mantenemos visible la línea de tiempo y la información superior.
   if(ctrls) { ctrls.classList.remove("ui-visible"); ctrls.classList.add("ui-hidden"); }
-  if(seek)  { seek.classList.remove("ui-visible");  seek.classList.add("ui-hidden"); }
-  if(fileNameLabel){ fileNameLabel.classList.remove("ui-visible"); fileNameLabel.classList.add("ui-hidden"); }
 
   if(infoPanel){
     infoPanel.style.display = "none";
@@ -1182,6 +1258,7 @@ function hideUI(){
   if(infoBtn){
     infoBtn.classList.remove("active");
   }
+  restoreAutoHideIfNeeded();
   if(volPop){
     volPop.style.display = "none";
   }
@@ -1194,12 +1271,17 @@ function hideUI(){
   if(imageAdjustBtn){
     imageAdjustBtn.classList.remove("active");
   }
+  if(stylePop){
+    stylePop.style.display = "none";
+  }
+  if(styleBtn){
+    styleBtn.classList.remove("active");
+  }
 }
 
 function showUI(){
+  // Solo mostramos/recuperamos los controles centrales; la línea de tiempo y la info superior permanecen siempre visibles.
   if(ctrls) { ctrls.classList.remove("ui-hidden"); ctrls.classList.add("ui-visible"); }
-  if(seek)  { seek.classList.remove("ui-hidden");  seek.classList.add("ui-visible"); }
-  if(fileNameLabel){ fileNameLabel.classList.remove("ui-hidden"); fileNameLabel.classList.add("ui-visible"); }
 }
 
 function resetInactivityTimer(){
@@ -1267,6 +1349,40 @@ if(imgPop){
     }
   });
 }
+
+if(styleBtn && stylePop){
+  styleBtn.onclick = (e)=>{
+    pulse(styleBtn);
+    e.stopPropagation();
+    const isOpen = stylePop.style.display === "flex";
+    if(isOpen){
+      stylePop.style.display = "none";
+      styleBtn.classList.remove("active");
+    }else{
+      stylePop.style.display = "flex";
+      styleBtn.classList.add("active");
+      if(imgPop){
+        imgPop.style.display = "none";
+        if(imageAdjustBtn){
+          imageAdjustBtn.classList.remove("active");
+        }
+      }
+      if(volPop){
+        volPop.style.display = "none";
+        if(volumeBtn){
+          volumeBtn.classList.remove("active");
+        }
+      }
+      if(infoPanel){
+        infoPanel.style.display = "none";
+        if(infoBtn){
+          infoBtn.classList.remove("active");
+        }
+      }
+    }
+  };
+}
+
 if(volPop){
   volPop.addEventListener("click",(e)=>{
     if(e.target === volPop){
@@ -1274,6 +1390,28 @@ if(volPop){
       if(volumeBtn){
         volumeBtn.classList.remove("active");
       }
+    }
+  });
+}
+if(stylePop){
+  stylePop.addEventListener("click",(e)=>{
+    if(e.target === stylePop){
+      stylePop.style.display = "none";
+      if(styleBtn){
+        styleBtn.classList.remove("active");
+      }
+      // Estilo no modifica autoHide, no hace falta restaurar aquí
+    }
+  });
+}
+if(infoPanel){
+  infoPanel.addEventListener("click",(e)=>{
+    if(e.target === infoPanel){
+      infoPanel.style.display = "none";
+      if(infoBtn){
+        infoBtn.classList.remove("active");
+      }
+      restoreAutoHideIfNeeded();
     }
   });
 }
@@ -1295,18 +1433,28 @@ if(saturRange){
     updateVideoFilters();
   });
 }
-let balance = 0;
-let bass = 0.5;
-if(balanceRange){
-  balanceRange.addEventListener("input",(e)=>{
-    balance = parseFloat(e.target.value) || 0;
+
+let uiBtnAlpha = 0.18;
+function applyButtonThemeFromControls(){
+  const transparency = darknessRange ? parseInt(darknessRange.value, 10) || 0 : 0; // 0 = totalmente transparente, 50 ≈ 80% opaco
+  const maxA = 0.8;
+  const alpha = Math.max(0, Math.min(1, (transparency / 50) * maxA));
+  uiBtnAlpha = alpha;
+  const hoverAlpha = Math.min(uiBtnAlpha + 0.1, 1);
+  const borderAlpha = Math.min(uiBtnAlpha + 0.15, 1);
+  const bg = `rgba(255,255,255,${uiBtnAlpha})`;
+  const bgHover = `rgba(255,255,255,${hoverAlpha})`;
+  const border = `rgba(255,255,255,${borderAlpha})`;
+  document.documentElement.style.setProperty("--btn-bg", bg);
+  document.documentElement.style.setProperty("--btn-bg-hover", bgHover);
+  document.documentElement.style.setProperty("--btn-border", border);
+}
+if(darknessRange){
+  darknessRange.addEventListener("input", ()=>{
+    applyButtonThemeFromControls();
   });
 }
-if(bassRange){
-  bassRange.addEventListener("input",(e)=>{
-    bass = parseFloat(e.target.value) || 0.5;
-  });
-}
+
 
 resetInactivityTimer();
 
@@ -1320,6 +1468,7 @@ updateProgressUI();
 updateVideoFilters();
 if(fileNameLabel) fileNameLabel.textContent = APP_TITLE;
 applyVideoTransform();
+applyButtonThemeFromControls();
 </script>
 
 </body>
