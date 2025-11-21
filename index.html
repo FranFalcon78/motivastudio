@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CursoPlayer Minimal (Rev 56)</title>
+<title>MOTIVA PLAYER</title>
 <style>
   :root{
     --btn-bg: rgba(255,255,255,.18);
     --btn-bg-hover: rgba(255,255,255,.28);
     --btn-border: rgba(255,255,255,.25);
   }
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui}
+  html,body{margin:0;height:100%;background:#1b0024;overflow:hidden;font-family:system-ui}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-  .bg-frame{position:fixed;inset:0;z-index:-1;background:#000 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
-  .splash{
+  .bg-frame{position:fixed;inset:0;z-index:-1;background:#1b0024 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
+
+  .hero-bg{position:fixed;inset:0;z-index:1;background:radial-gradient(circle at center, rgba(27,0,36,0) 0%, rgba(27,0,36,.55) 40%, rgba(10,0,16,.96) 100%),url("img/bailarina.jpg") center 45%/68% auto no-repeat;pointer-events:none;filter:blur(0px);opacity:1;transition:opacity .5s ease-out;}
+.splash{
     position:absolute;
     inset:0;
     display:flex;
@@ -24,32 +26,41 @@
     pointer-events:none;
     color:#fff;
     text-align:center;
-    opacity:1;
+    opacity:0;
     transition:opacity .4s ease-out;
   }
   .splash-logo{
-    width:80px;
-    height:80px;
+    width:92px;
+    height:92px;
     border-radius:50%;
-    border:2px solid rgba(255,255,255,.7);
+    border:2px solid rgba(255,255,255,.8);
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:40px;
-    font-weight:600;
-    margin-bottom:12px;
-    box-shadow:0 0 18px rgba(255,255,255,.25);
+    font-size:46px;
+    font-weight:650;
+    margin-bottom:16px;
+    box-shadow:0 0 22px rgba(255,255,255,.3);
+    opacity:0;
+    transform:translateY(14px);
+    animation:splashFadeUp 1s ease-out .08s forwards;
   }
   .splash-title{
-    font-size:28px;
-    letter-spacing:.08em;
+    font-size:34px;
+    letter-spacing:.16em;
     text-transform:uppercase;
-    margin-bottom:4px;
+    margin-bottom:8px;
+    opacity:0;
+    transform:translateY(12px);
+    animation:splashFadeUp 1s ease-out .22s forwards;
   }
   .splash-subtitle{
-    font-size:13px;
-    opacity:.85;
+    font-size:14px;
+    opacity:.9;
     max-width:60vw;
+    opacity:0;
+    transform:translateY(10px);
+    animation:splashFadeUp .9s ease-out .36s forwards;
   }
 
 .file-name{
@@ -92,6 +103,26 @@
   .btn:hover{background:var(--btn-bg-hover)}
   .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
   #playIcon path{fill:#fff;stroke:none;}
+
+.btn--primary-start{
+  box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 28px rgba(255,210,170,.95);
+  animation:openPulse 1.6s ease-in-out infinite;
+  transform-origin:center;
+}
+.btn.disabled{
+  opacity:.35;
+  pointer-events:none;
+  box-shadow:none;
+  filter:grayscale(.4);
+}
+.btn.disabled svg{
+  opacity:.6;
+}
+@keyframes openPulse{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.12);}
+  100%{transform:scale(1);}
+}
   .btn--text{min-width:72px;width:auto;padding:0 .6rem;border-radius:10px;background:var(--btn-bg);border:1px solid var(--btn-border);color:#fff;opacity:.95;text-align:center;cursor:pointer}
   .active{box-shadow:0 0 0 2px rgba(255,255,255,.55) inset,0 0 12px rgba(255,255,255,.35)}
   .active svg{opacity:1}
@@ -376,15 +407,23 @@
     pointer-events:none;
   }
 
+  @keyframes splashFadeUp{
+    0%{opacity:0;transform:translateY(16px);}
+    100%{opacity:1;transform:translateY(0);}
+  }
+
 </style>
 </head>
 <body>
+
+<div id="heroBg" class="hero-bg"></div>
 
 <div id="splash" class="splash">
   <div class="splash-logo">M</div>
   <div class="splash-title">Motiva Player</div>
   <div class="splash-subtitle">Estudia el movimiento en profundidad</div>
 </div>
+
 
 <div class="file-name ui-visible" id="fileNameLabel"></div>
 
@@ -554,10 +593,12 @@
 
 
 <script>
+window.addEventListener('load',()=>{ const s=document.querySelector('#splash'); if(s){ s.style.opacity='1'; }});
 const vid = document.querySelector("#vid");
 const file = document.querySelector("#file");
 const seek = document.querySelector("#seek");
 const bgFrame = document.querySelector("#bgFrame");
+const heroBg = document.querySelector("#heroBg");
 const splash = document.querySelector("#splash");
 const inner = document.querySelector("#seekInner");
 const trail = document.querySelector("#trail");
@@ -568,7 +609,7 @@ const abRange = document.querySelector("#abRange");
 const timeStartLabel = document.querySelector("#timeStartLabel");
 const timeEndLabel = document.querySelector("#timeEndLabel");
 const fileNameLabel = document.querySelector("#fileNameLabel");
-const APP_TITLE = "Motiva Player © 2025 Fran Falcón";
+const APP_TITLE = "MOTIVA PLAYER © 2025";
 const ctrls = document.querySelector("#ctrls");
 const markALabel = document.createElement("div");
 markALabel.className = "mark-label mark-labelA";
@@ -606,6 +647,26 @@ const contrastRange = document.querySelector("#contrastRange");
 const brightRange = document.querySelector("#brightRange");
 const saturRange = document.querySelector("#saturRange");
 
+
+const allButtons = Array.from(document.querySelectorAll(".btn"));
+let controlsLocked = true;
+
+function setControlsEnabled(enabled){
+  controlsLocked = !enabled;
+  allButtons.forEach(btn=>{
+    if(btn === openBtn) return;
+    if(enabled){
+      btn.classList.remove("disabled");
+    }else{
+      btn.classList.add("disabled");
+    }
+  });
+  if(enabled){
+    openBtn.classList.remove("btn--primary-start");
+  }else{
+    openBtn.classList.add("btn--primary-start");
+  }
+}
 let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
 let zoomLevel = 1;
 let autoHideEnabled = false;
@@ -631,6 +692,8 @@ let currentFile = null;
 let contrast = 1;
 let brightness = 1;
 let saturation = 1;
+
+setControlsEnabled(false);
 
 document.addEventListener("contextmenu",(e)=>e.preventDefault(),{passive:false});
 document.addEventListener("keydown",(e)=>{
@@ -732,6 +795,7 @@ file.onchange = e=>{
   openBtn.classList.remove("active");
   const f = e.target.files[0];
   if(f){
+    setControlsEnabled(true);
     currentFile = f;
     if(fileNameLabel){
       const fullName = currentFile.name || "(archivo local)";
@@ -744,6 +808,10 @@ file.onchange = e=>{
       splash.style.opacity = "0";
       // aunque la capa ya no intercepta eventos, la ocultamos tras la animación
       setTimeout(()=>{ if(splash){ splash.style.display = "none"; } }, 450);
+    }
+    if(heroBg){
+      heroBg.style.opacity = "0";
+      setTimeout(()=>{ if(heroBg){ heroBg.style.display = "none"; } }, 550);
     }
     setTimeout(updateInfoMeta,200);
   }
@@ -1102,6 +1170,7 @@ vid.addEventListener("loadedmetadata",()=>{
   updateTimeLabels();
   maybeGenerateBackground();
   if(splash){ splash.style.opacity = "0"; setTimeout(()=>{ if(splash){ splash.style.display="none"; } }, 450); }
+  if(heroBg){ heroBg.style.opacity = "0"; setTimeout(()=>{ if(heroBg){ heroBg.style.display="none"; } }, 550); }
 });
 window.addEventListener("resize",updateProgressUI);
 
