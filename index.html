@@ -377,6 +377,13 @@
     border:none;
   }
 
+.img-pop-separator{
+  border:none;
+  border-top:1px solid var(--btn-border);
+  margin:6px 0;
+  opacity:.7;
+}
+
   .btn[data-tip]::before{
     content:attr(data-tip);
     position:absolute;
@@ -412,6 +419,35 @@
     100%{opacity:1;transform:translateY(0);}
   }
 
+
+  /* Cámara y grabación de pantalla (modo pantalla dividida) */
+  #camPreview{
+    position:absolute;
+    inset:0;
+    width:0;
+    height:0;
+    opacity:0;
+    pointer-events:none;
+  }
+  #recordCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:none;
+    background:#1b0024;
+    z-index:0;
+  }
+  body.camera-mode #recordCanvas{
+    display:block;
+  }
+  body.camera-mode #vid{
+    display:none;
+  }
+  .btn--recording{
+    box-shadow:0 0 0 2px rgba(255,120,120,.95),0 0 28px rgba(255,80,80,.9);
+  }
+
 </style>
 </head>
 <body>
@@ -431,6 +467,10 @@
 
 <input id="file" type="file" accept="video/*">
 <video id="vid" playsinline></video>
+<!-- Vista previa oculta de la cámara para el modo de pantalla dividida -->
+<video id="camPreview" playsinline muted></video>
+<!-- Lienzo donde se compone el vídeo + cámara y que además se captura para grabar -->
+<canvas id="recordCanvas"></canvas>
 
 <div class="seek ui-visible" id="seek">
   <div class="seek-inner" id="seekInner">
@@ -481,6 +521,12 @@
       <svg viewBox="0 0 24 24">
         <path d="M2 7h20M2 17h20"/>
         <path d="M12 3v18"/>
+      </svg>
+    </div>
+    <div class="btn disabled" id="camBtn" data-tip="Cámara">
+      <svg viewBox="0 0 24 24">
+        <rect x="4" y="7" width="9" height="8" rx="2"/>
+        <path d="M13 9l4-2v10l-4-2z"/>
       </svg>
     </div>
     <div class="btn" id="volumeBtn" data-tip="Volumen">
@@ -550,12 +596,21 @@
         <path d="M18 6L6 18M6 6l12 12"/>
       </svg>
     </div>
+  
+  <div class="ctrl-row hidden" id="camExitRow">
+    <div class="btn" id="camExitBtn" data-tip="Salir de cámara">
+      <svg viewBox="0 0 24 24">
+        <path d="M10 8l-4 4 4 4"/>
+        <path d="M6 12h12"/>
+      </svg>
+    </div>
   </div>
+</div>
 </div>
 
 <div class="img-pop ui-visible" id="imgPop">
   <div class="img-pop-inner">
-    <div class="img-pop-title">Ajustes de imagen</div>
+    <div class="img-pop-title">Ajustes de imagen (vídeo)</div>
     <div class="img-pop-row">
       <span>Contraste</span>
       <input id="contrastRange" type="range" min="50" max="150" value="100">
@@ -567,6 +622,20 @@
     <div class="img-pop-row">
       <span>Saturación</span>
       <input id="saturRange" type="range" min="0" max="200" value="100">
+    </div>
+    <hr class="img-pop-separator">
+    <div class="img-pop-title">Imagen de cámara</div>
+    <div class="img-pop-row">
+      <span>Contraste cam.</span>
+      <input id="camContrastRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Brillo cam.</span>
+      <input id="camBrightRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Saturación cam.</span>
+      <input id="camSaturRange" type="range" min="0" max="200" value="100">
     </div>
   </div>
 </div>
@@ -623,7 +692,12 @@ const zoomBtn   = document.querySelector("#zoomBtn");
 const playBtn   = document.querySelector("#play");
 const playShape = document.querySelector("#playShape");
 const mirrorBtn = document.querySelector("#mirror");
+const camBtn    = document.querySelector("#camBtn");
+const camExitBtn = document.querySelector("#camExitBtn");
+const camExitRow = document.querySelector("#camExitRow");
 const loopBtn   = document.querySelector("#loop");
+const camPreview = document.querySelector("#camPreview");
+const recordCanvas = document.querySelector("#recordCanvas");
 const clearABBtn= document.querySelector("#clearAB");
 const rateLabel = document.querySelector("#rateLabel");
 const speedDownBtn = document.querySelector("#speedDown");
@@ -646,6 +720,9 @@ const imgPop = document.querySelector("#imgPop");
 const contrastRange = document.querySelector("#contrastRange");
 const brightRange = document.querySelector("#brightRange");
 const saturRange = document.querySelector("#saturRange");
+const camContrastRange = document.querySelector("#camContrastRange");
+const camBrightRange = document.querySelector("#camBrightRange");
+const camSaturRange = document.querySelector("#camSaturRange");
 
 
 const allButtons = Array.from(document.querySelectorAll(".btn"));
@@ -670,6 +747,15 @@ function setControlsEnabled(enabled){
 let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
 let zoomLevel = 1;
 let autoHideEnabled = false;
+
+// Estado de cámara y grabación
+let cameraState = "idle"; // idle | preview | recording
+let camStream = null;
+let recordStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let canvasCtx = null;
+let drawAnimationId = null;
 let autoHideWasEnabledBeforeInfo = false;
 
 function restoreAutoHideIfNeeded(){
@@ -692,6 +778,9 @@ let currentFile = null;
 let contrast = 1;
 let brightness = 1;
 let saturation = 1;
+let camContrast = 1;
+let camBrightness = 1;
+let camSaturation = 1;
 
 setControlsEnabled(false);
 
@@ -739,6 +828,36 @@ function applyVideoTransform(){
     vid.style.transform = `scale(${-zoomLevel}, ${zoomLevel})`;
   }else{
     vid.style.transform = `scale(${zoomLevel})`;
+  }
+}
+
+function setCamButtonMode(mode){
+  if(!camBtn) return;
+  camBtn.classList.remove("btn--recording");
+  camBtn.classList.remove("btn--primary-start");
+  camBtn.classList.remove("active");
+
+  if(mode === "idle"){
+    camBtn.dataset.tip = "Cámara";
+    camBtn.innerHTML = `<svg viewBox="0 0 24 24">
+      <rect x="4" y="7" width="9" height="8" rx="2"/>
+      <path d="M13 9l4-2v10l-4-2z"/>
+    </svg>`;
+  }else if(mode === "preview"){
+    camBtn.dataset.tip = "Grabar pantalla";
+    camBtn.classList.add("active");
+    camBtn.classList.add("btn--primary-start");
+    camBtn.innerHTML = `<svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="5" fill="#fff" stroke="none"/>
+    </svg>`;
+  }else if(mode === "recording"){
+    camBtn.dataset.tip = "Detener grabación";
+    camBtn.classList.add("active");
+    camBtn.classList.add("btn--primary-start");
+    camBtn.classList.add("btn--recording");
+    camBtn.innerHTML = `<svg viewBox="0 0 24 24">
+      <rect x="9" y="9" width="6" height="6" rx="1" fill="#fff" stroke="none"/>
+    </svg>`;
   }
 }
 
@@ -1503,6 +1622,22 @@ if(saturRange){
   });
 }
 
+if(camContrastRange){
+  camContrastRange.addEventListener("input",(e)=>{
+    camContrast = parseInt(e.target.value,10) / 100;
+  });
+}
+if(camBrightRange){
+  camBrightRange.addEventListener("input",(e)=>{
+    camBrightness = parseInt(e.target.value,10) / 100;
+  });
+}
+if(camSaturRange){
+  camSaturRange.addEventListener("input",(e)=>{
+    camSaturation = parseInt(e.target.value,10) / 100;
+  });
+}
+
 let uiBtnAlpha = 0.18;
 function applyButtonThemeFromControls(){
   const transparency = darknessRange ? parseInt(darknessRange.value, 10) || 0 : 0; // 0 = totalmente transparente, 50 ≈ 80% opaco
@@ -1523,6 +1658,269 @@ if(darknessRange){
     applyButtonThemeFromControls();
   });
 }
+
+
+
+// =======================
+// Cámara + pantalla dividida + grabación
+// =======================
+
+function drawHalfVideo(ctx, sourceVideo, totalW, totalH, side){
+  const videoW = sourceVideo.videoWidth;
+  const videoH = sourceVideo.videoHeight;
+  if(!videoW || !videoH) return;
+  const halfW = totalW / 2;
+  const scale = Math.min(halfW / videoW, totalH / videoH);
+  const drawW = videoW * scale;
+  const drawH = videoH * scale;
+  const centerX = totalW / 2;
+  const x = side === "left" ? centerX - drawW : centerX;
+  const y = (totalH - drawH) / 2;
+  ctx.drawImage(sourceVideo, 0, 0, videoW, videoH, x, y, drawW, drawH);
+}
+
+function drawHalfCamera(ctx, camVideo, totalW, totalH){
+  if(!vid || !camVideo) return;
+  const baseW = vid.videoWidth;
+  const baseH = vid.videoHeight;
+  const camW = camVideo.videoWidth;
+  const camH = camVideo.videoHeight;
+  if(!baseW || !baseH || !camW || !camH) return;
+
+  const desiredAspect = baseW / baseH;
+  const camAspect = camW / camH;
+
+  let sx = 0, sy = 0, sw = camW, sh = camH;
+  if(camAspect > desiredAspect){
+    // Cámara más panorámica: recortar laterales.
+    const desiredW = camH * desiredAspect;
+    sx = (camW - desiredW) / 2;
+    sw = desiredW;
+  }else{
+    // Cámara más vertical: recortar arriba/abajo.
+    const desiredH = camW / desiredAspect;
+    sy = (camH - desiredH) / 2;
+    sh = desiredH;
+  }
+
+  const halfW = totalW / 2;
+  const scale = Math.min(halfW / baseW, totalH / baseH);
+  const drawW = baseW * scale;
+  const drawH = baseH * scale;
+  const centerX = totalW / 2;
+  const x = centerX;
+  const y = (totalH - drawH) / 2;
+
+  ctx.drawImage(camVideo, sx, sy, sw, sh, x, y, drawW, drawH);
+}
+
+function startCanvasDrawing(){
+  if(!recordCanvas) return;
+  canvasCtx = recordCanvas.getContext("2d");
+  if(drawAnimationId) cancelAnimationFrame(drawAnimationId);
+
+  const draw = ()=>{
+    if(!canvasCtx) return;
+    const w = recordCanvas.width = window.innerWidth;
+    const h = recordCanvas.height = window.innerHeight;
+    canvasCtx.fillStyle = "#1b0024";
+    canvasCtx.fillRect(0,0,w,h);
+
+    const videoReady = vid && vid.videoWidth > 0 && vid.videoHeight > 0;
+    const camReady = camPreview && camPreview.videoWidth > 0 && camPreview.videoHeight > 0;
+
+    canvasCtx.save();
+
+    if(videoReady){
+      // Aplicar los mismos ajustes de imagen del vídeo también en la grabación
+      canvasCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+      drawHalfVideo(canvasCtx, vid, w, h, "left");
+    }
+
+    if(videoReady && camReady){
+      // Ajustes de imagen específicos para la cámara
+      canvasCtx.filter = `contrast(${camContrast}) saturate(${camSaturation}) brightness(${camBrightness})`;
+      drawHalfCamera(canvasCtx, camPreview, w, h);
+    }
+
+    canvasCtx.restore();
+
+    drawAnimationId = requestAnimationFrame(draw);
+  };
+  draw();
+}
+
+async function enableCameraPreview(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    alert("Tu navegador no permite acceder a la cámara.");
+    return;
+  }
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+    if(camPreview){
+      camPreview.srcObject = camStream;
+      camPreview.muted = true;
+      camPreview.playsInline = true;
+      camPreview.play().catch(()=>{});
+    }
+    document.body.classList.add("camera-mode");
+    startCanvasDrawing();
+    cameraState = "preview";
+    setCamButtonMode("preview");
+    if(camExitRow){
+      camExitRow.classList.remove("hidden");
+    }
+    if(camExitBtn){
+      camExitBtn.classList.remove("disabled");
+    }
+  }catch(err){
+    console.error("Error al acceder a la cámara:", err);
+    alert("No se pudo acceder a la cámara.");
+  }
+}
+
+function cleanupCamera(){
+  if(camStream){
+    camStream.getTracks().forEach(t=>t.stop());
+    camStream = null;
+  }
+  if(drawAnimationId) cancelAnimationFrame(drawAnimationId);
+  drawAnimationId = null;
+  canvasCtx = null;
+  document.body.classList.remove("camera-mode");
+  if(camExitRow){
+    camExitRow.classList.add("hidden");
+  }
+  if(camExitBtn){
+    camExitBtn.classList.add("disabled");
+  }
+}
+
+function startRecordingCanvas(){
+  if(!recordCanvas || !recordCanvas.captureStream){
+    alert("La grabación de pantalla no es compatible en este navegador.");
+    return;
+  }
+  const stream = recordCanvas.captureStream(25);
+  recordStream = stream;
+
+  // Intentar añadir el audio del vídeo de referencia, si el navegador lo permite.
+  try{
+    const vStream = vid.captureStream ? vid.captureStream() : (vid.mozCaptureStream ? vid.mozCaptureStream() : null);
+    if(vStream){
+      vStream.getAudioTracks().forEach(track=>{
+        recordStream.addTrack(track);
+      });
+    }
+  }catch(e){
+    console.warn("No se pudo adjuntar audio del vídeo a la grabación:", e);
+  }
+
+  let mimeType = "";
+  if(window.MediaRecorder && MediaRecorder.isTypeSupported){
+    if(MediaRecorder.isTypeSupported("video/mp4;codecs=avc1.42E01E,mp4a.40.2")){
+      mimeType = "video/mp4;codecs=avc1.42E01E,mp4a.40.2";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")){
+      mimeType = "video/webm;codecs=vp9,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")){
+      mimeType = "video/webm;codecs=vp8,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm")){
+      mimeType = "video/webm";
+    }
+  }
+
+  try{
+    mediaRecorder = mimeType ? new MediaRecorder(recordStream,{ mimeType }) : new MediaRecorder(recordStream);
+  }catch(err){
+    console.error("Error al iniciar MediaRecorder:", err);
+    alert("No se pudo iniciar la grabación en este navegador.");
+    return;
+  }
+
+  recordedChunks = [];
+  mediaRecorder.ondataavailable = (e)=>{
+    if(e.data && e.data.size > 0){
+      recordedChunks.push(e.data);
+    }
+  };
+  mediaRecorder.onstop = ()=>{
+    const finalMime = mediaRecorder.mimeType || mimeType || "video/webm";
+    const isMp4 = finalMime.indexOf("mp4") !== -1;
+    const blob = new Blob(recordedChunks,{ type: finalMime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const baseName = currentFile && currentFile.name ? currentFile.name.replace(/\.[^.]+$/, "") : "motiva_recording";
+    a.download = baseName + (isMp4 ? ".mp4" : ".webm");
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },100);
+  };
+
+  mediaRecorder.start();
+  cameraState = "recording";
+  setCamButtonMode("recording");
+}
+
+function stopRecordingCanvas(){
+  if(mediaRecorder && mediaRecorder.state !== "inactive"){
+    mediaRecorder.stop();
+  }
+  if(recordStream){
+    recordStream.getTracks().forEach(t=>t.stop());
+    recordStream = null;
+  }
+  cameraState = "preview";
+  setCamButtonMode("preview");
+}
+
+function exitCameraCompletely(){
+  // Si se está grabando, detenemos primero la grabación (lo que también guarda el archivo)
+  if(cameraState === "recording"){
+    stopRecordingCanvas();
+  }
+  // Limpia cámara, canvas y vuelve al modo normal
+  cleanupCamera();
+  cameraState = "idle";
+  setCamButtonMode("idle");
+}
+
+// Comportamiento del botón de cámara:
+//  - idle     -> activar cámara y vista previa (pantalla dividida)
+//  - preview  -> comenzar grabación
+//  - recording-> detener grabación (manteniendo la cámara activa)
+if(camBtn){
+  setCamButtonMode("idle");
+  camBtn.addEventListener("click", async ()=>{
+    if(controlsLocked) return;
+    pulse(camBtn);
+    if(cameraState === "idle"){
+      await enableCameraPreview();
+    }else if(cameraState === "preview"){
+      startRecordingCanvas();
+    }else if(cameraState === "recording"){
+      stopRecordingCanvas();
+    }
+  });
+}
+
+if(camExitBtn){
+  camExitBtn.addEventListener("click", ()=>{
+    if(controlsLocked) return;
+    pulse(camExitBtn);
+    exitCameraCompletely();
+  });
+}
+
+window.addEventListener("beforeunload", ()=>{
+  cleanupCamera();
+  if(recordStream){
+    recordStream.getTracks().forEach(t=>t.stop());
+  }
+});
 
 
 resetInactivityTimer();
