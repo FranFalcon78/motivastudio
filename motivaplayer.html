@@ -1,0 +1,2289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motiva Player</title>
+<style>
+  :root{
+    --btn-bg: rgba(255,255,255,.18);
+    --btn-bg-hover: rgba(255,255,255,.28);
+    --btn-border: rgba(255,255,255,.25);
+  }
+  html,body{margin:0;height:100%;background:#1b0024;overflow:hidden;font-family:system-ui}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+  .bg-frame{position:fixed;inset:0;z-index:-1;background:#1b0024 center/120% cover no-repeat;filter:blur(10px);opacity:0;transition:opacity .35s ease;}
+
+  .hero-bg{position:fixed;inset:0;z-index:1;background:radial-gradient(circle at center, rgba(27,0,36,0) 0%, rgba(27,0,36,.55) 40%, rgba(10,0,16,.96) 100%),url("img/bailarina.jpg") center 45%/68% auto no-repeat;pointer-events:none;filter:blur(0px);opacity:1;transition:opacity .5s ease-out;}
+.splash{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:9;
+    pointer-events:none;
+    color:#fff;
+    text-align:center;
+    opacity:0;
+    transition:opacity .4s ease-out;
+  }
+  .splash-logo{
+    width:92px;
+    height:92px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.8);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:46px;
+    font-weight:650;
+    margin-bottom:16px;
+    box-shadow:0 0 22px rgba(255,255,255,.3);
+    opacity:0;
+    transform:translateY(14px);
+    animation:splashFadeUp 1s ease-out .08s forwards;
+  }
+  .splash-title{
+    font-size:34px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+    opacity:0;
+    transform:translateY(12px);
+    animation:splashFadeUp 1s ease-out .22s forwards;
+  }
+  .splash-subtitle{
+    font-size:14px;
+    opacity:.9;
+    max-width:60vw;
+    opacity:0;
+    transform:translateY(10px);
+    animation:splashFadeUp .9s ease-out .36s forwards;
+  }
+
+.file-name{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:20;
+  color:#fff;
+  font-size:12px;
+  opacity:.92;
+  background:rgba(0,0,0,.35);
+  padding:4px 12px;
+  border-radius:999px;
+  max-width:60vw;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+  .ctrls{
+    position:absolute;
+    bottom:12vh;
+    left:0;
+    right:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    pointer-events:auto;
+    z-index:10;
+  }
+  .ctrl-row{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:.8rem;
+  }
+  .ab-bubble{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    padding:4px 10px;
+    border-radius:999px;
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    backdrop-filter:blur(4px);
+  }
+  .btn{min-width:42px;height:42px;border-radius:50%;background:var(--btn-bg);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid var(--btn-border);position:relative;color:#fff}
+  .btn:hover{background:var(--btn-bg-hover)}
+  .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
+  #playIcon path{fill:#fff;stroke:none;}
+
+  /* Progreso circular para el botón de corte A-B */
+  #cutBtn {
+    position: relative;
+    overflow: hidden;
+  }
+  #cutBtn .cut-icon{
+    transition:opacity .15s ease-out, transform .15s ease-out;
+  }
+  #cutBtn .cut-progress{
+    position:absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    pointer-events:none;
+    opacity:0;
+    transform:rotate(-90deg);
+    transition:opacity .15s ease-out;
+  }
+  #cutBtn .cut-progress-bg,
+  #cutBtn .cut-progress-fg{
+    fill:none;
+    stroke-width:3;
+  }
+  #cutBtn .cut-progress-bg{
+    stroke:rgba(255,255,255,.25);
+  }
+  #cutBtn .cut-progress-fg{
+    stroke:#fff;
+    stroke-linecap:round;
+    stroke-dasharray:100;
+    stroke-dashoffset:100;
+  }
+  #cutBtn.cut-processing .cut-icon{
+    opacity:0;
+    transform:scale(.9);
+  }
+  #cutBtn.cut-processing .cut-progress{
+    opacity:1;
+  }
+
+.btn--primary-start{
+  box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 28px rgba(255,210,170,.95);
+  animation:openPulse 1.6s ease-in-out infinite;
+  transform-origin:center;
+}
+.btn.disabled{
+  opacity:.35;
+  pointer-events:none;
+  box-shadow:none;
+  filter:grayscale(.4);
+}
+.btn.disabled svg{
+  opacity:.6;
+}
+@keyframes openPulse{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.12);}
+  100%{transform:scale(1);}
+}
+  .btn--text{min-width:72px;width:auto;padding:0 .6rem;border-radius:10px;background:var(--btn-bg);border:1px solid var(--btn-border);color:#fff;opacity:.95;text-align:center;cursor:pointer}
+  .active{box-shadow:0 0 0 2px rgba(255,255,255,.55) inset,0 0 12px rgba(255,255,255,.35)}
+  .active svg{opacity:1}
+  input[type=file]{display:none}
+  .pulse::after{content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 3px rgba(255,255,255,.6);animation:pulse .18s ease-out forwards}
+  @keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.15)}}
+
+  .seek{position:absolute;left:0;right:0;bottom:4vh;height:28px;z-index:12;cursor:pointer;touch-action:none}
+  .seek-inner{position:absolute;left:2vw;right:2vw;top:50%;transform:translateY(-50%);height:28px;touch-action:none}
+  .track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:var(--btn-border);border-radius:2px;pointer-events:none}
+  .trail{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;background:var(--btn-bg);border-radius:6px;width:0%;pointer-events:none}
+  .dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);left:0%;pointer-events:none}
+
+  .mark{
+    position:absolute;
+    top:50%;
+    transform:translateX(-50%);
+    width:0;
+    height:0;
+    pointer-events:auto;
+    cursor:default;
+    opacity:0;
+  }
+  .mark::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    width:2px;
+    height:22px;
+    background:var(--btn-border);
+    border-radius:2px;
+    box-shadow:0 0 6px rgba(255,255,255,.35);
+  }
+  .mark.show{opacity:1}
+  .mark-label{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    padding:4px 8px;
+    font-size:11px;
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    border-radius:10px;
+    color:#fff;
+    white-space:nowrap;
+    backdrop-filter:blur(4px);
+    box-shadow:0 0 8px rgba(0,0,0,.35);
+    touch-action:none;
+  }
+
+  .mark-labelA{
+    top: 10px;
+  }
+
+  .mark-labelB{
+    top: -34px;
+  }
+
+  .time-label{
+    position:absolute;
+    padding:4px 8px;
+    font-size:11px;
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    border-radius:10px;
+    color:#fff;
+    white-space:nowrap;
+    backdrop-filter:blur(4px);
+    box-shadow:0 0 8px rgba(0,0,0,.35);
+  }
+  .time-label-start{
+    left:0;
+    top:-21px;
+  }
+  .time-label-end{
+    right:0;
+    top:24px;
+  }
+
+  .ab-range{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    height:8px;
+    background:rgba(255,255,255,.58);
+    border-radius:8px;
+    left:0;width:0;
+    pointer-events:none;
+    opacity:0
+  }
+  .ab-range.show{opacity:1}
+  .ab-range.loop-active{filter:blur(3px);}
+
+  .info{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:32;
+  }
+  .info-inner{
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    border-radius:14px;
+    padding:16px 20px;
+    backdrop-filter:blur(6px);
+    min-width:260px;
+    max-width:520px;
+    color:#fff;
+    font-size:13px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    line-height:1.35;
+  }
+  .info-inner h3{margin:.2rem 0 .4rem;font-size:14px;opacity:.95}
+  .info-inner p{margin:.25rem 0;font-size:13px;opacity:.95;white-space:pre-line}
+  .hidden{display:none!important}
+
+  .vol-pop{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:32;
+  }
+  .vol-pop-inner{
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    border-radius:14px;
+    padding:16px 20px;
+    backdrop-filter:blur(6px);
+    min-width:260px;
+    max-width:320px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color:#fff;
+    font-size:13px;
+  }
+  .vol-pop-title{
+    font-size:14px;
+    margin-bottom:4px;
+    opacity:.95;
+    text-align:center;
+  }
+  .vol-pop-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .vol-pop-row span{
+    min-width:90px;
+  }
+  .vol-pop-row input[type=range]{
+    flex:1;
+    appearance:none;
+    background:transparent;
+  }
+  .vol-pop-row input[type=range]::-webkit-slider-runnable-track{
+    height:2px;
+    background:#ffffff66;
+    border-radius:4px;
+  }
+  .vol-pop-row input[type=range]::-webkit-slider-thumb{
+    appearance:none;
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    margin-top:-6px;
+    box-shadow:0 0 0 2px rgba(255,255,255,.35);
+  }
+  .vol-pop-row input[type=range]::-moz-range-track{
+    height:2px;
+    background:#ffffff66;
+    border-radius:4px;
+  }
+  .vol-pop-row input[type=range]::-moz-range-thumb{
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    border:none;
+  }
+
+  .img-pop{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:30;
+  }
+  .img-pop-inner{
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    border-radius:14px;
+    padding:16px 20px;
+    backdrop-filter:blur(6px);
+    min-width:260px;
+    max-width:320px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color:#fff;
+    font-size:13px;
+  }
+  .img-pop-title{
+    font-size:14px;
+    margin-bottom:4px;
+    opacity:.95;
+    text-align:center;
+  }
+  .img-pop-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .img-pop-row span{
+    min-width:90px;
+  }
+  .img-pop-row input[type=range]{
+    flex:1;
+    appearance:none;
+    background:transparent;
+  }
+  .img-pop-row input[type=range]::-webkit-slider-runnable-track{
+    height:2px;
+    background:#ffffff66;
+    border-radius:4px;
+  }
+  .img-pop-row input[type=range]::-webkit-slider-thumb{
+    appearance:none;
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    margin-top:-6px;
+    box-shadow:0 0 0 2px rgba(255,255,255,.35);
+  }
+  .img-pop-row input[type=range]::-moz-range-track{
+    height:2px;
+    background:#ffffff66;
+    border-radius:4px;
+  }
+  .img-pop-row input[type=range]::-moz-range-thumb{
+    width:14px;height:14px;
+    border-radius:50%;
+    background:#fff;
+    border:none;
+  }
+
+.img-pop-separator{
+  border:none;
+  border-top:1px solid var(--btn-border);
+  margin:6px 0;
+  opacity:.7;
+}
+
+  .btn[data-tip]::before{
+    content:attr(data-tip);
+    position:absolute;
+    bottom:48px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.8);
+    color:#fff;
+    font-size:11px;
+    padding:3px 6px;
+    border-radius:6px;
+    white-space:nowrap;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .12s ease-out;
+  }
+  .btn[data-tip]:hover::before{
+    opacity:1;
+  }
+
+  .ui-visible{
+    opacity:1;
+    transition:opacity 2s ease-out;
+  }
+  .ui-hidden{
+    opacity:0;
+    transition:opacity 3s ease-out;
+    pointer-events:none;
+  }
+
+  @keyframes splashFadeUp{
+    0%{opacity:0;transform:translateY(16px);}
+    100%{opacity:1;transform:translateY(0);}
+  }
+
+
+  /* Cámara y grabación de pantalla (modo pantalla dividida) */
+  #camPreview{
+    position:absolute;
+    inset:0;
+    width:0;
+    height:0;
+    opacity:0;
+    pointer-events:none;
+  }
+  #recordCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:none;
+    background:#1b0024;
+    z-index:0;
+  }
+  body.camera-mode #recordCanvas{
+    display:block;
+  }
+  body.camera-mode #vid{
+    display:none;
+  }
+  .btn--recording{
+    box-shadow:0 0 0 2px rgba(255,120,120,.95),0 0 28px rgba(255,80,80,.9);
+  }
+
+</style>
+</head>
+<body>
+
+<div id="heroBg" class="hero-bg"></div>
+
+<div id="splash" class="splash">
+  <div class="splash-logo">M</div>
+  <div class="splash-title">Motiva Player</div>
+  <div class="splash-subtitle">Estudia el movimiento en profundidad</div>
+</div>
+
+
+<div class="file-name ui-visible" id="fileNameLabel"></div>
+
+<div id="bgFrame" class="bg-frame"></div>
+
+<input id="file" type="file" accept="video/*">
+<video id="vid" playsinline></video>
+<!-- Vista previa oculta de la cámara para el modo de pantalla dividida -->
+<video id="camPreview" playsinline muted></video>
+<!-- Lienzo donde se compone el vídeo + cámara y que además se captura para grabar -->
+<canvas id="recordCanvas"></canvas>
+
+<div class="seek ui-visible" id="seek">
+  <div class="seek-inner" id="seekInner">
+    <div class="trail" id="trail"></div>
+    <div class="ab-range" id="abRange"></div>
+    <div class="track"></div>
+    <div class="mark markA" id="markA"></div>
+    <div class="mark markB" id="markB"></div>
+    <div class="dot" id="dot"></div>
+    <div class="time-label time-label-start" id="timeStartLabel">00:00:00.0</div>
+    <div class="time-label time-label-end" id="timeEndLabel">00:00:00.0</div>
+  </div>
+</div>
+
+<div class="info ui-visible" id="infoPanel">
+  <div class="info-inner">
+    <h3>Información del archivo</h3>
+    <p id="infoMeta">Abre un vídeo para ver los detalles.</p>
+    <h3>Acerca de</h3>
+    <p id="aboutMeta"></p>
+  </div>
+</div>
+
+<div class="ctrls ui-visible" id="ctrls">
+  <div class="ctrl-row">
+    <div class="btn" id="open" data-tip="Abrir vídeo">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 7h5l2 3h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <path d="M3 7V5a2 2 0 0 1 2-2h5l2 2"/>
+      </svg>
+    </div>
+    <div class="btn" id="zoomBtn" data-tip="Zoom">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="5"/>
+        <path d="M16 16l4 4"/>
+        <path d="M11 8v6"/>
+        <path d="M8 11h6"/>
+      </svg>
+    </div>
+    <div class="btn" id="infoBtn" data-tip="Información">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 16v-5"/>
+        <circle cx="12" cy="8" r="1"/>
+      </svg>
+    </div>
+    <div class="btn" id="mirror" data-tip="Espejo">
+      <svg viewBox="0 0 24 24">
+        <path d="M2 7h20M2 17h20"/>
+        <path d="M12 3v18"/>
+      </svg>
+    </div>
+    <div class="btn disabled" id="camBtn" data-tip="Cámara">
+      <svg viewBox="0 0 24 24">
+        <rect x="4" y="7" width="9" height="8" rx="2"/>
+        <path d="M13 9l4-2v10l-4-2z"/>
+      </svg>
+    </div>
+    <div class="btn" id="volumeBtn" data-tip="Volumen">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 10h4l5-4v12l-5-4H3z"/>
+        <path d="M16 8a4 4 0 0 1 0 8"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="ctrl-row">
+    <div class="btn" id="styleBtn" data-tip="Estilo de interfaz">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="6"/>
+        <path d="M4 12h4M16 12h4M12 4v4M12 16v4"/>
+      </svg>
+    </div>
+    <div class="btn" id="speedDown" data-tip="Velocidad -">
+      <svg viewBox="0 0 24 24">
+        <path d="M5 12h14"/>
+      </svg>
+    </div>
+    <div class="btn btn--text" id="rateLabel" data-tip="Velocidad actual (click para 1.00×)">1.00×</div>
+    <div class="btn" id="speedUp" data-tip="Velocidad +">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </div>
+    <div class="btn" id="imageAdjustBtn" data-tip="Ajustes de imagen">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 7h16M4 12h16M4 17h16"/>
+        <circle cx="9" cy="7" r="1.5"/>
+        <circle cx="15" cy="12" r="1.5"/>
+        <circle cx="11" cy="17" r="1.5"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="ctrl-row">
+    <div class="btn" id="play" data-tip="Reproducir / Pausa">
+      <svg id="playIcon" viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z" id="playShape"/>
+      </svg>
+    </div>
+    <div class="btn" id="fs" data-tip="Pantalla completa">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4"/>
+      </svg>
+    </div>
+    <div class="btn" id="autoHideBtn" data-tip="Ocultar controles tras inactividad">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="7"/>
+        <path d="M12 8v4"/>
+        <path d="M12 12l3 2"/>
+      </svg>
+    </div>
+    <div class="btn" id="loop" data-tip="Bucle A-B">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 10a6 6 0 0 1 6-6h5"/>
+        <path d="M15 4l-2-2 2-2"/>
+        <path d="M20 14a6 6 0 0 1-6 6h-5"/>
+        <path d="M9 20l2 2-2 2"/>
+      </svg>
+    </div>
+    <div class="ab-bubble hidden" id="abBubble">
+      <div class="btn disabled" id="cutBtn" data-tip="Cortar A-B">
+        <svg class="cut-icon" viewBox="0 0 24 24">
+          <!-- Tijeras en blanco, sin fondo, coherentes con el resto de iconos -->
+          <g stroke="#fff" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Aros de las tijeras -->
+            <circle cx="8" cy="9" r="2"/>
+            <circle cx="8" cy="15" r="2"/>
+            <!-- Eje central -->
+            <circle cx="11" cy="12" r="0.6" fill="#fff" stroke="#fff"/>
+            <!-- Hojas abiertas -->
+            <path d="M11 11.4 L18 8"/>
+            <path d="M11 12.6 L18 16"/>
+          </g>
+        </svg>
+        <svg class="cut-progress" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="cut-progress-bg" cx="18" cy="18" r="17"></circle>
+          <circle class="cut-progress-fg cut-progress-circle" cx="18" cy="18" r="17"></circle>
+        </svg>
+      </div>
+      <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctrl-row hidden" id="camExitRow">
+    <div class="btn" id="camExitBtn" data-tip="Salir de cámara">
+      <svg viewBox="0 0 24 24">
+        <path d="M10 8l-4 4 4 4"/>
+        <path d="M6 12h12"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="img-pop ui-visible" id="imgPop">
+  <div class="img-pop-inner">
+    <div class="img-pop-title">Ajustes de imagen (vídeo)</div>
+    <div class="img-pop-row">
+      <span>Contraste</span>
+      <input id="contrastRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Brillo</span>
+      <input id="brightRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Saturación</span>
+      <input id="saturRange" type="range" min="0" max="200" value="100">
+    </div>
+    <hr class="img-pop-separator">
+    <div class="img-pop-title">Imagen de cámara</div>
+    <div class="img-pop-row">
+      <span>Contraste cam.</span>
+      <input id="camContrastRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Brillo cam.</span>
+      <input id="camBrightRange" type="range" min="50" max="150" value="100">
+    </div>
+    <div class="img-pop-row">
+      <span>Saturación cam.</span>
+      <input id="camSaturRange" type="range" min="0" max="200" value="100">
+    </div>
+  </div>
+</div>
+
+<div class="vol-pop ui-visible" id="volPop">
+  <div class="vol-pop-inner">
+    <div class="vol-pop-title">Ajustes de audio</div>
+    <div class="vol-pop-row">
+      <span>Volumen</span>
+      <input id="volRange" type="range" min="0" max="1" step="0.01" value="1">
+    </div>
+  </div>
+</div>
+
+<div class="img-pop ui-visible" id="stylePop">
+  <div class="img-pop-inner">
+    <div class="img-pop-title">Estilo de la interfaz</div>
+    <div class="img-pop-row">
+      <span>Transparencia</span>
+      <input id="darknessRange" type="range" min="0" max="30" value="6">
+    </div>
+  </div>
+</div>
+
+
+<script>
+window.addEventListener('load',()=>{ const s=document.querySelector('#splash'); if(s){ s.style.opacity='1'; }});
+const vid = document.querySelector("#vid");
+const file = document.querySelector("#file");
+const seek = document.querySelector("#seek");
+const bgFrame = document.querySelector("#bgFrame");
+const heroBg = document.querySelector("#heroBg");
+const splash = document.querySelector("#splash");
+const inner = document.querySelector("#seekInner");
+const trail = document.querySelector("#trail");
+const dot = document.querySelector("#dot");
+const markAEl = document.querySelector("#markA");
+const markBEl = document.querySelector("#markB");
+const abRange = document.querySelector("#abRange");
+const timeStartLabel = document.querySelector("#timeStartLabel");
+const timeEndLabel = document.querySelector("#timeEndLabel");
+const fileNameLabel = document.querySelector("#fileNameLabel");
+const APP_TITLE = "MOTIVA PLAYER © 2025";
+const ctrls = document.querySelector("#ctrls");
+const markALabel = document.createElement("div");
+markALabel.className = "mark-label mark-labelA";
+markAEl.appendChild(markALabel);
+const markBLabel = document.createElement("div");
+markBLabel.className = "mark-label mark-labelB";
+markBEl.appendChild(markBLabel);
+
+const openBtn   = document.querySelector("#open");
+const zoomBtn   = document.querySelector("#zoomBtn");
+const playBtn   = document.querySelector("#play");
+const playShape = document.querySelector("#playShape");
+const mirrorBtn = document.querySelector("#mirror");
+const camBtn    = document.querySelector("#camBtn");
+const camExitBtn = document.querySelector("#camExitBtn");
+const camExitRow = document.querySelector("#camExitRow");
+const loopBtn   = document.querySelector("#loop");
+const camPreview = document.querySelector("#camPreview");
+const abBubble  = document.querySelector("#abBubble");
+const recordCanvas = document.querySelector("#recordCanvas");
+const cutBtn   = document.querySelector("#cutBtn");
+const clearABBtn= document.querySelector("#clearAB");
+const rateLabel = document.querySelector("#rateLabel");
+const speedDownBtn = document.querySelector("#speedDown");
+const speedUpBtn   = document.querySelector("#speedUp");
+const infoBtn   = document.querySelector("#infoBtn");
+const infoPanel = document.querySelector("#infoPanel");
+const infoMeta  = document.querySelector("#infoMeta");
+const aboutMeta = document.querySelector("#aboutMeta");
+const volumeBtn = document.querySelector("#volumeBtn");
+const volPop    = document.querySelector("#volPop");
+const volRange  = document.querySelector("#volRange");
+const styleBtn  = document.querySelector("#styleBtn");
+const stylePop  = document.querySelector("#stylePop");
+const darknessRange = document.querySelector("#darknessRange");
+const fsBtn     = document.querySelector("#fs");
+const autoHideBtn = document.querySelector("#autoHideBtn");
+
+const imageAdjustBtn = document.querySelector("#imageAdjustBtn");
+const imgPop = document.querySelector("#imgPop");
+const contrastRange = document.querySelector("#contrastRange");
+const brightRange = document.querySelector("#brightRange");
+const saturRange = document.querySelector("#saturRange");
+const camContrastRange = document.querySelector("#camContrastRange");
+const camBrightRange = document.querySelector("#camBrightRange");
+const camSaturRange = document.querySelector("#camSaturRange");
+
+
+const allButtons = Array.from(document.querySelectorAll(".btn"));
+let controlsLocked = true;
+
+function setControlsEnabled(enabled){
+  controlsLocked = !enabled;
+  allButtons.forEach(btn=>{
+    if(btn === openBtn) return;
+    if(enabled){
+      btn.classList.remove("disabled");
+    }else{
+      btn.classList.add("disabled");
+    }
+  });
+  if(enabled){
+    openBtn.classList.remove("btn--primary-start");
+  }else{
+    openBtn.classList.add("btn--primary-start");
+  }
+}
+let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
+let zoomLevel = 1;
+let autoHideEnabled = false;
+
+// Estado de cámara y grabación
+let cameraState = "idle"; // idle | preview | recording
+let camStream = null;
+let recordStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let canvasCtx = null;
+let drawAnimationId = null;
+let autoHideWasEnabledBeforeInfo = false;
+
+function restoreAutoHideIfNeeded(){
+  if(autoHideWasEnabledBeforeInfo){
+    autoHideEnabled = true;
+    autoHideWasEnabledBeforeInfo = false;
+    if(autoHideBtn){
+      autoHideBtn.classList.add("active");
+    }
+    if(typeof resetInactivityTimer === "function"){
+      resetInactivityTimer();
+    }
+  }
+}
+const MIN_AB_GAP = 0.2;
+let isSeeking=false;
+let draggingMark = null;
+let currentFile = null;
+
+let contrast = 1;
+let brightness = 1;
+let saturation = 1;
+let camContrast = 1;
+let camBrightness = 1;
+let camSaturation = 1;
+
+let cutProgressAnimId = null;
+let cutProgressStart = 0;
+let cutProgressDuration = 0;
+let cutProgressCircle = null;
+let cutProgressLength = 0;
+
+
+setControlsEnabled(false);
+
+document.addEventListener("contextmenu",(e)=>e.preventDefault(),{passive:false});
+document.addEventListener("keydown",(e)=>{
+  if((e.ctrlKey||e.metaKey) && (["s","p","u","S","P","U"].includes(e.key))){
+    e.preventDefault();
+    return;
+  }
+  if(e.key === "ArrowLeft"){
+    e.preventDefault();
+    seekRelative(-10);
+    return;
+  }
+  if(e.key === "ArrowRight"){
+    e.preventDefault();
+    seekRelative(10);
+    return;
+  }
+  if(e.key === "F11"){
+    e.preventDefault();
+    toggleFS();
+    return;
+  }
+},{passive:false});
+
+function pulse(el){
+  el.classList.remove("pulse");void el.offsetWidth;el.classList.add("pulse");
+}
+
+function updateRateUI(){
+  rateLabel.textContent = rate.toFixed(2)+"×";
+  const isNormal = Math.abs(rate-1) < 0.001;
+  rateLabel.classList.toggle("active", isNormal);
+  speedDownBtn.classList.toggle("active", rate < 1);
+  speedUpBtn.classList.toggle("active", rate > 1);
+}
+
+function updateVolumeUI(){
+  volumeBtn.classList.toggle("active", vid.volume > 0);
+}
+
+function applyVideoTransform(){
+  if(isMirrored){
+    vid.style.transform = `scale(${-zoomLevel}, ${zoomLevel})`;
+  }else{
+    vid.style.transform = `scale(${zoomLevel})`;
+  }
+}
+
+function setCamButtonMode(mode){
+  if(!camBtn) return;
+  camBtn.classList.remove("btn--recording");
+  camBtn.classList.remove("btn--primary-start");
+  camBtn.classList.remove("active");
+
+  if(mode === "idle"){
+    camBtn.dataset.tip = "Cámara";
+    camBtn.innerHTML = `<svg viewBox="0 0 24 24">
+      <rect x="4" y="7" width="9" height="8" rx="2"/>
+      <path d="M13 9l4-2v10l-4-2z"/>
+    </svg>`;
+  }else if(mode === "preview"){
+    camBtn.dataset.tip = "Grabar pantalla";
+    camBtn.classList.add("active");
+    camBtn.classList.add("btn--primary-start");
+    camBtn.innerHTML = `<svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="5" fill="#fff" stroke="none"/>
+    </svg>`;
+  }else if(mode === "recording"){
+    camBtn.dataset.tip = "Detener grabación";
+    camBtn.classList.add("active");
+    camBtn.classList.add("btn--primary-start");
+    camBtn.classList.add("btn--recording");
+    camBtn.innerHTML = `<svg viewBox="0 0 24 24">
+      <rect x="9" y="9" width="6" height="6" rx="1" fill="#fff" stroke="none"/>
+    </svg>`;
+  }
+}
+
+function updateZoomUI(){
+  zoomBtn.classList.toggle("active", Math.abs(zoomLevel-1) > 0.001);
+  applyVideoTransform();
+}
+
+function updateVideoFilters(){
+  vid.style.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+}
+
+function initCutProgress(){
+  if(!cutBtn) return;
+  const circle = cutBtn.querySelector(".cut-progress-circle");
+  if(!circle) return;
+  cutProgressCircle = circle;
+  const r = circle.r.baseVal.value || 0;
+  const length = 2 * Math.PI * r;
+  cutProgressLength = length;
+  circle.style.strokeDasharray = length;
+  circle.style.strokeDashoffset = length;
+}
+
+function startCutProgress(durationMs){
+  if(!cutProgressCircle || !durationMs) return;
+  cutProgressDuration = durationMs;
+  cutProgressStart = performance.now();
+  if(cutProgressAnimId) cancelAnimationFrame(cutProgressAnimId);
+  const step = (now)=>{
+    const elapsed = now - cutProgressStart;
+    const ratio = Math.min(1, elapsed / cutProgressDuration);
+    const offset = cutProgressLength * (1 - ratio);
+    cutProgressCircle.style.strokeDashoffset = offset;
+    if(ratio < 1){
+      cutProgressAnimId = requestAnimationFrame(step);
+    }else{
+      cutProgressAnimId = null;
+    }
+  };
+  cutProgressAnimId = requestAnimationFrame(step);
+}
+
+function resetCutProgress(){
+  if(cutProgressAnimId) cancelAnimationFrame(cutProgressAnimId);
+  cutProgressAnimId = null;
+  if(cutProgressCircle){
+    cutProgressCircle.style.strokeDashoffset = cutProgressLength;
+  }
+}
+
+function updateTimeLabels(){
+  const cur = vid.currentTime || 0;
+  const total = (vid.duration && isFinite(vid.duration)) ? vid.duration : 0;
+  if(timeStartLabel) timeStartLabel.textContent = formatTimeWithTenths(cur);
+  if(timeEndLabel)   timeEndLabel.textContent   = formatTimeWithTenths(total);
+}
+
+function updateLoopBtnState(){
+  const hasMarks = (A != null && B != null);
+  loopBtn.classList.toggle("active", hasMarks);
+  if (cutBtn) {
+    if (hasMarks && loopAB) {
+      cutBtn.classList.remove("disabled");
+    } else {
+      cutBtn.classList.add("disabled");
+    }
+  }
+  if (abBubble) {
+    const visible = hasMarks && loopAB;
+    abBubble.classList.toggle("hidden", !visible);
+  }
+}
+
+function formatTimeWithTenths(t){
+  if(t == null || !isFinite(t)) return "";
+  const total = Math.max(0, t);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = Math.floor(total % 60);
+  const tenths = Math.floor((total - Math.floor(total)) * 10);
+  return String(hours).padStart(2,"0") + ":" +
+         String(minutes).padStart(2,"0") + ":" +
+         String(seconds).padStart(2,"0") + "." +
+         tenths;
+}
+
+openBtn.onclick = ()=>{
+  pulse(openBtn);
+  openBtn.classList.add("active");
+  file.click();
+};
+
+zoomBtn.onclick = ()=>{
+  pulse(zoomBtn);
+  const levels = [1, 1.25, 1.5, 2];
+  const currentIndex = levels.findIndex(v => Math.abs(v - zoomLevel) < 0.001);
+  const nextIndex = (currentIndex + 1) % levels.length;
+  zoomLevel = levels[nextIndex];
+  updateZoomUI();
+};
+
+file.onchange = e=>{
+  openBtn.classList.remove("active");
+  const f = e.target.files[0];
+  if(f){
+    setControlsEnabled(true);
+    currentFile = f;
+    if(fileNameLabel){
+      const fullName = currentFile.name || "(archivo local)";
+      const baseName = fullName.replace(/\.[^.]+$/, "");
+      fileNameLabel.textContent = APP_TITLE + " · " + baseName;
+    }
+    vid.src = URL.createObjectURL(f);
+    vid.play();
+    if(splash){
+      splash.style.opacity = "0";
+      // aunque la capa ya no intercepta eventos, la ocultamos tras la animación
+      setTimeout(()=>{ if(splash){ splash.style.display = "none"; } }, 450);
+    }
+    if(heroBg){
+      heroBg.style.opacity = "0";
+      setTimeout(()=>{ if(heroBg){ heroBg.style.display = "none"; } }, 550);
+    }
+    setTimeout(updateInfoMeta,200);
+  }
+};
+
+infoBtn.onclick=()=>{
+  pulse(infoBtn);
+  const isOpen = infoPanel.style.display === "flex";
+  if(isOpen){
+    infoPanel.style.display = "none";
+    infoBtn.classList.remove("active");
+    restoreAutoHideIfNeeded();
+  }else{
+    updateInfoMeta();
+    infoPanel.style.display = "flex";
+    infoBtn.classList.add("active");
+    if(imgPop){
+      imgPop.style.display = "none";
+      if(imageAdjustBtn){
+        imageAdjustBtn.classList.remove("active");
+      }
+    }
+    if(volPop){
+      volPop.style.display = "none";
+      if(volumeBtn){
+        volumeBtn.classList.remove("active");
+      }
+    }
+    if(stylePop){
+      stylePop.style.display = "none";
+      if(styleBtn){
+        styleBtn.classList.remove("active");
+      }
+    }
+    if(autoHideEnabled){
+      autoHideWasEnabledBeforeInfo = true;
+      autoHideEnabled = false;
+      if(autoHideBtn){
+        autoHideBtn.classList.remove("active");
+      }
+      if(typeof showUI === "function"){
+        showUI();
+      }
+    }else{
+      autoHideWasEnabledBeforeInfo = false;
+    }
+  }
+};
+
+function human(n){
+  if(n<1024) return n+" B";
+  if(n<1024**2) return (n/1024).toFixed(1)+" KB";
+  if(n<1024**3) return (n/1024**2).toFixed(1)+" MB";
+  return (n/1024**3).toFixed(2)+" GB";
+}
+function updateInfoMeta(){
+  const lines=[];
+  if(currentFile){
+    lines.push("Nombre: "+(currentFile.name||"(desconocido)"));
+    lines.push("Tamaño: "+human(currentFile.size||0));
+    if(currentFile.lastModified) lines.push("Modificado: "+new Date(currentFile.lastModified).toLocaleString());
+  }else{
+    lines.push("Nombre: —");
+    lines.push("Tamaño: —");
+    lines.push("Modificado: —");
+  }
+  if(vid.videoWidth && vid.videoHeight){
+    lines.push("Resolución: "+vid.videoWidth+"×"+vid.videoHeight);
+  }else{
+    lines.push("Resolución: —");
+  }
+  if(vid.duration && isFinite(vid.duration)){
+    const d=Math.floor(vid.duration);
+    const mm=String(Math.floor(d/60)).padStart(2,"0");
+    const ss=String(d%60).padStart(2,"0");
+    lines.push("Duración: "+mm+":"+ss);
+  }else{
+    lines.push("Duración: —");
+  }
+  infoMeta.textContent = lines.join("\n");
+
+  if(aboutMeta){
+    aboutMeta.textContent = "";
+  }
+}
+
+playBtn.onclick=()=>{
+  pulse(playBtn);
+  if(vid.paused){vid.play();}
+  else{vid.pause();}
+};
+vid.addEventListener("play",()=>{
+  playShape.setAttribute("d","M9 5h2.5v14H9zM12.5 5h2.5v14h-2.5z");
+  playBtn.classList.add("active");
+});
+vid.addEventListener("pause",()=>{
+  playShape.setAttribute("d","M8 5v14l11-7z");
+  playBtn.classList.remove("active");
+});
+
+fsBtn.onclick=()=>{
+  pulse(fsBtn);
+  toggleFS();
+};
+document.addEventListener("fullscreenchange",()=>{
+  fsBtn.classList.toggle("active", !!document.fullscreenElement);
+});
+
+mirrorBtn.onclick=()=>{
+  isMirrored = !isMirrored;
+  mirrorBtn.classList.toggle("active", isMirrored);
+  pulse(mirrorBtn);
+  applyVideoTransform();
+};
+
+document.querySelector("#speedDown").onclick=()=>{
+  pulse(speedDownBtn);
+  rate = Math.max(.1, +(rate-.1).toFixed(2));
+  vid.playbackRate = rate;
+  updateRateUI();
+};
+document.querySelector("#speedUp").onclick=()=>{
+  pulse(speedUpBtn);
+  rate = Math.min(3, +(rate+.1).toFixed(2));
+  vid.playbackRate = rate;
+  updateRateUI();
+};
+rateLabel.onclick=()=>{
+  pulse(rateLabel);
+  rate = 1;
+  vid.playbackRate = 1;
+  updateRateUI();
+};
+
+clearABBtn.onclick=()=>{
+  A=null;B=null;
+  loopAB=false;
+  abRange.classList.remove("loop-active");
+  pulse(clearABBtn);
+  updateMarks();
+  updateLoopBtnState();
+  updateProgressUI();
+};
+loopBtn.onclick=()=>{
+  if(A != null && B != null){
+    return;
+  }
+  if(vid.duration && isFinite(vid.duration)){
+    A = vid.duration * 0.33;
+    B = vid.duration * 0.66;
+    vid.currentTime = A;
+  }
+  loopAB = true;
+  abRange.classList.add("loop-active");
+  pulse(loopBtn);
+  updateMarks();
+  updateLoopBtnState();
+  updateProgressUI();
+};
+
+if (cutBtn){
+  cutBtn.addEventListener("click", ()=>{
+    if(controlsLocked) return;
+    pulse(cutBtn);
+    performCutAB();
+  });
+}
+
+function formatTimeForFileName(t){
+  if(t == null || !isFinite(t)) return "00-00-00.0";
+  const total = Math.max(0, t);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = Math.floor(total % 60);
+  const tenths = Math.floor((total - Math.floor(total)) * 10);
+  return String(hours).padStart(2,"0") + "-" +
+         String(minutes).padStart(2,"0") + "-" +
+         String(seconds).padStart(2,"0") + "." +
+         tenths;
+}
+
+async function performCutAB(){
+  if(!currentFile || !loopAB || A == null || B == null){
+    alert("Activa el bucle A-B y marca los puntos A y B antes de cortar.");
+    return;
+  }
+  if(!(vid.duration && isFinite(vid.duration))){
+    alert("El vídeo aún no está listo para cortar.");
+    return;
+  }
+  const start = Math.min(A, B);
+  const end   = Math.max(A, B);
+  if(end - start < MIN_AB_GAP){
+    alert("El tramo A-B es demasiado corto para cortar.");
+    return;
+  }
+
+  const capture = vid.captureStream ? vid.captureStream.bind(vid) :
+                  (vid.mozCaptureStream ? vid.mozCaptureStream.bind(vid) : null);
+  if(!capture){
+    alert("Tu navegador no permite capturar el vídeo para cortar.");
+    return;
+  }
+
+  let stream;
+  try{
+    stream = capture();
+  }catch(err){
+    console.error("No se pudo iniciar la captura del vídeo:", err);
+    alert("No se pudo iniciar la captura del vídeo.");
+    return;
+  }
+  if(!stream){
+    alert("No se pudo iniciar la captura del vídeo.");
+    return;
+  }
+
+  cutBtn.classList.add("disabled");
+  cutBtn.classList.add("cut-processing");
+
+  const wasPaused     = vid.paused;
+  const originalRate  = vid.playbackRate;
+  const originalTime  = vid.currentTime;
+
+  vid.pause();
+  vid.playbackRate = 1;
+
+  let mimeType = "";
+  if(window.MediaRecorder && MediaRecorder.isTypeSupported){
+    if(MediaRecorder.isTypeSupported("video/mp4;codecs=avc1.42E01E,mp4a.40.2")){
+      mimeType = "video/mp4;codecs=avc1.42E01E,mp4a.40.2";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")){
+      mimeType = "video/webm;codecs=vp9,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")){
+      mimeType = "video/webm;codecs=vp8,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm")){
+      mimeType = "video/webm";
+    }
+  }
+
+  let recorder;
+  try{
+    recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  }catch(err){
+    console.error("Error al iniciar MediaRecorder para corte:", err);
+    alert("No se pudo iniciar la grabación para el corte.");
+    vid.playbackRate = originalRate;
+    vid.currentTime  = originalTime;
+    if(!wasPaused){
+      vid.play().catch(()=>{});
+    }
+    cutBtn.classList.remove("disabled");
+    cutBtn.classList.remove("cut-processing");
+    resetCutProgress();
+    return;
+  }
+
+  const chunks = [];
+  recorder.ondataavailable = (e)=>{
+    if(e.data && e.data.size > 0){
+      chunks.push(e.data);
+    }
+  };
+
+  const durationMs = (end - start) * 1000;
+
+  startCutProgress(durationMs);
+
+  const stopPromise = new Promise((resolve)=>{
+    recorder.onstop = ()=>resolve();
+  });
+
+  const seekPromise = new Promise((resolve)=>{
+    const onSeeked = ()=>{
+      vid.removeEventListener("seeked", onSeeked);
+      vid.play().catch(()=>{});
+      recorder.start();
+      setTimeout(()=>{
+        try{ recorder.stop(); }catch(_){}
+        vid.pause();
+      }, durationMs);
+      resolve();
+    };
+    vid.addEventListener("seeked", onSeeked);
+  });
+
+  vid.currentTime = start;
+
+  try{
+    await seekPromise;
+    await stopPromise;
+  }catch(err){
+    console.error("Error durante el corte A-B:", err);
+  }
+
+  vid.playbackRate = originalRate;
+  vid.currentTime  = originalTime;
+  if(!wasPaused){
+    vid.play().catch(()=>{});
+  }
+
+  const finalType = recorder.mimeType || mimeType || "video/webm";
+  const isMp4 = finalType.indexOf("mp4") !== -1;
+  const blob = new Blob(chunks, { type: finalType });
+
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm   = String(now.getMonth() + 1).padStart(2, "0");
+  const dd   = String(now.getDate()).padStart(2, "0");
+  const datePart = yyyy + "-" + mm + "-" + dd;
+
+  const baseName = currentFile && currentFile.name ? currentFile.name.replace(/\.[^.]+$/, "") : "motiva_cut";
+  const aName = formatTimeForFileName(start);
+  const bName = formatTimeForFileName(end);
+  const ext   = isMp4 ? ".mp4" : ".webm";
+  const fileName = baseName + "_" + datePart + "_" + aName + "_" + bName + ext;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1000);
+
+  cutBtn.classList.remove("disabled");
+  cutBtn.classList.remove("cut-processing");
+  resetCutProgress();
+}
+
+
+volumeBtn.onclick=(e)=>{
+  pulse(volumeBtn);
+  e.stopPropagation();
+  const isOpen = volPop.style.display === "flex";
+  if(isOpen){
+    volPop.style.display = "none";
+    volumeBtn.classList.remove("active");
+  }else{
+    volPop.style.display = "flex";
+    volumeBtn.classList.add("active");
+    if(imgPop){
+      imgPop.style.display = "none";
+      if(imageAdjustBtn){
+        imageAdjustBtn.classList.remove("active");
+      }
+    }
+    if(stylePop){
+      stylePop.style.display = "none";
+      if(styleBtn){
+        styleBtn.classList.remove("active");
+      }
+    }
+    if(infoPanel){
+      infoPanel.style.display = "none";
+      if(infoBtn){
+        infoBtn.classList.remove("active");
+      }
+      restoreAutoHideIfNeeded();
+    }
+  }
+};
+volRange.addEventListener("input",(e)=>{
+  vid.volume = +e.target.value;
+  updateVolumeUI();
+});
+volRange.addEventListener("pointerdown",(e)=>{
+  const rect = volRange.getBoundingClientRect();
+  let x = Math.max(rect.left, Math.min(e.clientX, rect.right));
+  const ratio = (x - rect.left) / rect.width;
+  const min = parseFloat(volRange.min);
+  const max = parseFloat(volRange.max);
+  let val = min + ratio * (max - min);
+  if(val < min) val = min;
+  if(val > max) val = max;
+  volRange.value = val;
+  vid.volume = val;
+  updateVolumeUI();
+});
+volPop.addEventListener("wheel",(e)=>{
+  e.preventDefault();
+  const step = 0.05;
+  let v = vid.volume;
+  if(e.deltaY < 0) v += step;
+  else if(e.deltaY > 0) v -= step;
+  if(v < 0) v = 0;
+  if(v > 1) v = 1;
+  vid.volume = v;
+  volRange.value = v;
+  updateVolumeUI();
+},{passive:false});
+
+function seekRelative(delta){
+  if(!(vid.duration && isFinite(vid.duration))) return;
+  let t = vid.currentTime + delta;
+  if(t < 0) t = 0;
+  if(vid.duration && isFinite(vid.duration) && t > vid.duration) t = vid.duration;
+  if(loopAB && A!=null && B!=null){
+    const a = Math.min(A,B);
+    const b = Math.max(A,B);
+    if(t < a || t > b){
+      t = A;
+    }
+  }
+  vid.currentTime = t;
+  updateProgressUI();
+}
+
+function toggleFS(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+}
+
+function pct(){
+  if(!vid.duration || !isFinite(vid.duration)) return 0;
+  return Math.max(0,Math.min(1, vid.currentTime/vid.duration));
+}
+function timeToPct(t){
+  if(!vid.duration || !isFinite(vid.duration)) return 0;
+  const frac=Math.max(0,Math.min(1,t/vid.duration));
+  return frac*100;
+}
+function pctToTime(p){
+  if(!vid.duration || !isFinite(vid.duration)) return 0;
+  const frac=Math.max(0,Math.min(1,p/100));
+  return frac*vid.duration;
+}
+
+function updateMarks(){
+  if(A!=null){
+    markAEl.style.left = timeToPct(A)+"%";
+    markAEl.classList.add("show");
+    const labelA = formatTimeWithTenths(A);
+    markALabel.textContent = labelA || "";
+  }else{
+    markAEl.classList.remove("show");
+    markALabel.textContent = "";
+  }
+
+  if(B!=null){
+    markBEl.style.left = timeToPct(B)+"%";
+    markBEl.classList.add("show");
+    const labelB = formatTimeWithTenths(B);
+    markBLabel.textContent = labelB || "";
+  }else{
+    markBEl.classList.remove("show");
+    markBLabel.textContent = "";
+  }
+
+  if(A!=null && B!=null){
+    const a=Math.min(A,B), b=Math.max(A,B);
+    const left=timeToPct(a), right=timeToPct(b);
+    abRange.style.left = left+"%";
+    abRange.style.width = (right-left)+"%";
+    abRange.classList.add("show");
+  }else{
+    abRange.classList.remove("show");
+  }
+  updateLoopBtnState();
+}
+
+function updateProgressUI(){
+  const p = pct()*100;
+  trail.style.width = p+"%";
+  dot.style.left = p+"%";
+  updateMarks();
+  updateTimeLabels();
+}
+
+vid.addEventListener("timeupdate",()=>{
+  if(loopAB && A!=null && B!=null && B>A){
+    if(vid.currentTime>=B) vid.currentTime=A;
+  }
+  updateProgressUI();
+});
+
+vid.addEventListener("ended",()=>{
+  if(loopAB && A!=null && B!=null && B>A){
+    vid.currentTime = A;
+    vid.play();
+  }else{
+    vid.currentTime = 0;
+    vid.play();
+  }
+});
+
+function maybeGenerateBackground(){
+  if(!(vid.videoWidth && vid.videoHeight && vid.duration && isFinite(vid.duration))) return;
+  const videoRatio = vid.videoWidth / vid.videoHeight;
+  const windowRatio = window.innerWidth / window.innerHeight;
+  const hasBars = Math.abs(videoRatio - windowRatio) > 0.05;
+  if(!hasBars) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = vid.videoWidth;
+  canvas.height = vid.videoHeight;
+  const ctx = canvas.getContext("2d");
+
+  const originalTime = vid.currentTime;
+  const wasPaused = vid.paused;
+
+  function onSeeked(){
+    try{
+      ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+      const url = canvas.toDataURL("image/jpeg", 0.9);
+      bgFrame.style.backgroundImage = `url(${url})`;
+      bgFrame.style.opacity = "1";
+    }catch(err){
+      console.error("No se pudo generar fondo difuminado:", err);
+    }finally{
+      vid.removeEventListener("seeked", onSeeked);
+      vid.currentTime = originalTime;
+      if(!wasPaused) vid.play();
+    }
+  }
+
+  vid.addEventListener("seeked", onSeeked);
+  vid.pause();
+  vid.currentTime = vid.duration / 2;
+}
+
+vid.addEventListener("loadedmetadata",()=>{
+  rate = 1;
+  vid.playbackRate = 1;
+  updateRateUI();
+  updateProgressUI();
+  updateTimeLabels();
+  maybeGenerateBackground();
+  if(splash){ splash.style.opacity = "0"; setTimeout(()=>{ if(splash){ splash.style.display="none"; } }, 450); }
+  if(heroBg){ heroBg.style.opacity = "0"; setTimeout(()=>{ if(heroBg){ heroBg.style.display="none"; } }, 550); }
+});
+window.addEventListener("resize",updateProgressUI);
+
+function setTimeFromClientX(clientX){
+  const r = inner.getBoundingClientRect();
+  let x = Math.max(r.left,Math.min(clientX,r.right));
+  const frac = (x-r.left)/r.width;
+  if(!(vid.duration && isFinite(vid.duration))){
+    return;
+  }
+  const candidate = frac * vid.duration;
+
+  if(loopAB && A!=null && B!=null){
+    const a = Math.min(A,B);
+    const b = Math.max(A,B);
+    if(candidate < a || candidate > b){
+      return;
+    }
+  }
+
+  vid.currentTime = candidate;
+  updateProgressUI();
+}
+seek.addEventListener("pointerdown",(e)=>{
+  isSeeking = true;
+  setTimeFromClientX(e.clientX);
+  e.preventDefault();
+});
+document.addEventListener("pointermove",(e)=>{
+  if(!isSeeking) return;
+  setTimeFromClientX(e.clientX);
+});
+document.addEventListener("pointerup",()=>{
+  isSeeking = false;
+});
+document.addEventListener("pointercancel",()=>{
+  isSeeking = false;
+});
+
+function onMarkPointerDown(e,which){
+  if(!(vid.duration && isFinite(vid.duration))) return;
+  e.stopPropagation();
+  e.preventDefault();
+  draggingMark = which;
+  e.currentTarget.setPointerCapture(e.pointerId);
+}
+function onMarkPointerMove(e){
+  if(!draggingMark) return;
+  const r = inner.getBoundingClientRect();
+  let x = Math.max(r.left,Math.min(e.clientX,r.right));
+  const p = ((x-r.left)/r.width)*100;
+  let t = pctToTime(p);
+
+  if(!(vid.duration && isFinite(vid.duration))) return;
+  if(t < 0) t = 0;
+  if(t > vid.duration) t = vid.duration;
+
+  if(draggingMark==="A"){
+    if(B != null){
+      const maxA = B - MIN_AB_GAP;
+      if(t > maxA) t = Math.max(0, maxA);
+    }
+    A = t;
+  }
+  if(draggingMark==="B"){
+    if(A != null){
+      const minB = A + MIN_AB_GAP;
+      if(t < minB) t = Math.min(vid.duration, minB);
+    }
+    B = t;
+  }
+  updateMarks();
+}
+function onMarkPointerUp(e){
+  if(!draggingMark) return;
+  e.currentTarget.releasePointerCapture(e.pointerId);
+  draggingMark=null;
+  if(loopAB && A!=null && B!=null){
+    const a = Math.min(A,B);
+    const b = Math.max(A,B);
+    if(vid.currentTime < a || vid.currentTime > b){
+      vid.currentTime = A;
+      updateProgressUI();
+    }
+  }
+}
+["pointerdown"].forEach(ev=>{
+  [markAEl, markALabel].forEach(el=>{
+    if(el) el.addEventListener(ev,(e)=>onMarkPointerDown(e,"A"));
+  });
+  [markBEl, markBLabel].forEach(el=>{
+    if(el) el.addEventListener(ev,(e)=>onMarkPointerDown(e,"B"));
+  });
+});
+["pointermove"].forEach(ev=>{
+  [markAEl, markALabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerMove);
+  });
+  [markBEl, markBLabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerMove);
+  });
+});
+["pointerup","pointercancel"].forEach(ev=>{
+  [markAEl, markALabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerUp);
+  });
+  [markBEl, markBLabel].forEach(el=>{
+    if(el) el.addEventListener(ev,onMarkPointerUp);
+  });
+});
+
+
+function attachTouchDragToMark(el, which){
+  if(!el) return;
+  el.addEventListener("touchstart",(e)=>{
+    if(!(vid.duration && isFinite(vid.duration))) return;
+    const t = e.touches[0];
+    draggingMark = which;
+    e.preventDefault();
+    onMarkPointerMove({ clientX: t.clientX });
+  },{passive:false});
+  el.addEventListener("touchmove",(e)=>{
+    if(!draggingMark) return;
+    const t = e.touches[0];
+    e.preventDefault();
+    onMarkPointerMove({ clientX: t.clientX });
+  },{passive:false});
+  el.addEventListener("touchend",(e)=>{
+    e.preventDefault();
+    draggingMark=null;
+  },{passive:false});
+  el.addEventListener("touchcancel",(e)=>{
+    e.preventDefault();
+    draggingMark=null;
+  },{passive:false});
+}
+
+attachTouchDragToMark(markALabel,"A");
+attachTouchDragToMark(markAEl,"A");
+attachTouchDragToMark(markBLabel,"B");
+attachTouchDragToMark(markBEl,"B");
+
+let inactivityTimeout = null;
+const INACTIVITY_DELAY = 3000;
+
+function hideUI(){
+  if(!autoHideEnabled) return;
+  // Solo ocultamos los controles centrales; mantenemos visible la línea de tiempo y la información superior.
+  if(ctrls) { ctrls.classList.remove("ui-visible"); ctrls.classList.add("ui-hidden"); }
+
+  if(infoPanel){
+    infoPanel.style.display = "none";
+  }
+  if(infoBtn){
+    infoBtn.classList.remove("active");
+  }
+  restoreAutoHideIfNeeded();
+  if(volPop){
+    volPop.style.display = "none";
+  }
+  if(volumeBtn){
+    volumeBtn.classList.remove("active");
+  }
+  if(imgPop){
+    imgPop.style.display = "none";
+  }
+  if(imageAdjustBtn){
+    imageAdjustBtn.classList.remove("active");
+  }
+  if(stylePop){
+    stylePop.style.display = "none";
+  }
+  if(styleBtn){
+    styleBtn.classList.remove("active");
+  }
+}
+
+function showUI(){
+  // Solo mostramos/recuperamos los controles centrales; la línea de tiempo y la info superior permanecen siempre visibles.
+  if(ctrls) { ctrls.classList.remove("ui-hidden"); ctrls.classList.add("ui-visible"); }
+}
+
+function resetInactivityTimer(){
+  if(!autoHideEnabled) return;
+  showUI();
+  if(inactivityTimeout) clearTimeout(inactivityTimeout);
+  inactivityTimeout = setTimeout(hideUI, INACTIVITY_DELAY);
+}
+
+if(autoHideBtn){
+  autoHideBtn.classList.toggle("active", autoHideEnabled);
+  autoHideBtn.onclick = ()=>{
+    pulse(autoHideBtn);
+    autoHideEnabled = !autoHideEnabled;
+    autoHideBtn.classList.toggle("active", autoHideEnabled);
+    if(autoHideEnabled){
+      resetInactivityTimer();
+    }else{
+      if(inactivityTimeout){
+        clearTimeout(inactivityTimeout);
+        inactivityTimeout = null;
+      }
+      showUI();
+    }
+  };
+}
+
+["mousemove","mousedown","keydown","wheel","touchstart","pointermove"].forEach(ev=>{
+  document.addEventListener(ev, resetInactivityTimer, {passive:true});
+});
+
+if(imageAdjustBtn && imgPop){
+  imageAdjustBtn.onclick = (e)=>{
+    pulse(imageAdjustBtn);
+    e.stopPropagation();
+    const isOpen = imgPop.style.display === "flex";
+    if(isOpen){
+      imgPop.style.display = "none";
+      imageAdjustBtn.classList.remove("active");
+    }else{
+      imgPop.style.display = "flex";
+      imageAdjustBtn.classList.add("active");
+      if(infoPanel){
+        infoPanel.style.display = "none";
+        if(infoBtn){
+          infoBtn.classList.remove("active");
+        }
+      }
+      if(volPop){
+        volPop.style.display = "none";
+        if(volumeBtn){
+          volumeBtn.classList.remove("active");
+        }
+      }
+    }
+  };
+}
+if(imgPop){
+  imgPop.addEventListener("click",(e)=>{
+    if(e.target === imgPop){
+      imgPop.style.display = "none";
+      if(imageAdjustBtn){
+        imageAdjustBtn.classList.remove("active");
+      }
+    }
+  });
+}
+
+if(styleBtn && stylePop){
+  styleBtn.onclick = (e)=>{
+    pulse(styleBtn);
+    e.stopPropagation();
+    const isOpen = stylePop.style.display === "flex";
+    if(isOpen){
+      stylePop.style.display = "none";
+      styleBtn.classList.remove("active");
+    }else{
+      stylePop.style.display = "flex";
+      styleBtn.classList.add("active");
+      if(imgPop){
+        imgPop.style.display = "none";
+        if(imageAdjustBtn){
+          imageAdjustBtn.classList.remove("active");
+        }
+      }
+      if(volPop){
+        volPop.style.display = "none";
+        if(volumeBtn){
+          volumeBtn.classList.remove("active");
+        }
+      }
+      if(infoPanel){
+        infoPanel.style.display = "none";
+        if(infoBtn){
+          infoBtn.classList.remove("active");
+        }
+      }
+    }
+  };
+}
+
+if(volPop){
+  volPop.addEventListener("click",(e)=>{
+    if(e.target === volPop){
+      volPop.style.display = "none";
+      if(volumeBtn){
+        volumeBtn.classList.remove("active");
+      }
+    }
+  });
+}
+if(stylePop){
+  stylePop.addEventListener("click",(e)=>{
+    if(e.target === stylePop){
+      stylePop.style.display = "none";
+      if(styleBtn){
+        styleBtn.classList.remove("active");
+      }
+      // Estilo no modifica autoHide, no hace falta restaurar aquí
+    }
+  });
+}
+if(infoPanel){
+  infoPanel.addEventListener("click",(e)=>{
+    if(e.target === infoPanel){
+      infoPanel.style.display = "none";
+      if(infoBtn){
+        infoBtn.classList.remove("active");
+      }
+      restoreAutoHideIfNeeded();
+    }
+  });
+}
+if(contrastRange){
+  contrastRange.addEventListener("input",(e)=>{
+    contrast = parseInt(e.target.value,10) / 100;
+    updateVideoFilters();
+  });
+}
+if(brightRange){
+  brightRange.addEventListener("input",(e)=>{
+    brightness = parseInt(e.target.value,10) / 100;
+    updateVideoFilters();
+  });
+}
+if(saturRange){
+  saturRange.addEventListener("input",(e)=>{
+    saturation = parseInt(e.target.value,10) / 100;
+    updateVideoFilters();
+  });
+}
+
+if(camContrastRange){
+  camContrastRange.addEventListener("input",(e)=>{
+    camContrast = parseInt(e.target.value,10) / 100;
+  });
+}
+if(camBrightRange){
+  camBrightRange.addEventListener("input",(e)=>{
+    camBrightness = parseInt(e.target.value,10) / 100;
+  });
+}
+if(camSaturRange){
+  camSaturRange.addEventListener("input",(e)=>{
+    camSaturation = parseInt(e.target.value,10) / 100;
+  });
+}
+
+let uiBtnAlpha = 0.18;
+function applyButtonThemeFromControls(){
+  const transparency = darknessRange ? parseInt(darknessRange.value, 10) || 0 : 0; // 0 = totalmente transparente, 50 ≈ 80% opaco
+  const maxA = 0.8;
+  const alpha = Math.max(0, Math.min(1, (transparency / 50) * maxA));
+  uiBtnAlpha = alpha;
+  const hoverAlpha = Math.min(uiBtnAlpha + 0.1, 1);
+  const borderAlpha = Math.min(uiBtnAlpha + 0.15, 1);
+  const bg = `rgba(255,255,255,${uiBtnAlpha})`;
+  const bgHover = `rgba(255,255,255,${hoverAlpha})`;
+  const border = `rgba(255,255,255,${borderAlpha})`;
+  document.documentElement.style.setProperty("--btn-bg", bg);
+  document.documentElement.style.setProperty("--btn-bg-hover", bgHover);
+  document.documentElement.style.setProperty("--btn-border", border);
+}
+if(darknessRange){
+  darknessRange.addEventListener("input", ()=>{
+    applyButtonThemeFromControls();
+  });
+}
+
+
+
+// =======================
+// Cámara + pantalla dividida + grabación
+// =======================
+
+function drawHalfVideo(ctx, sourceVideo, totalW, totalH, side){
+  const videoW = sourceVideo.videoWidth;
+  const videoH = sourceVideo.videoHeight;
+  if(!videoW || !videoH) return;
+
+  const halfW = totalW / 2;
+
+  // Escala base para que el vídeo encaje en su mitad de pantalla
+  const baseScale = Math.min(halfW / videoW, totalH / videoH);
+  const drawW = videoW * baseScale;
+  const drawH = videoH * baseScale;
+  const centerX = totalW / 2;
+  const x = side === "left" ? centerX - drawW : centerX;
+  const y = (totalH - drawH) / 2;
+
+  // Región de vídeo que se va a recortar (por defecto, todo el vídeo)
+  let sx = 0, sy = 0, sw = videoW, sh = videoH;
+
+  // Cuando es el vídeo de referencia ("left"), aplicamos zoom centrado con recorte
+  if(side === "left" && zoomLevel > 1){
+    const zoom = zoomLevel;
+    sw = videoW / zoom;
+    sh = videoH / zoom;
+    sx = (videoW - sw) / 2;
+    sy = (videoH - sh) / 2;
+  }
+
+  if(side === "left" && isMirrored){
+    ctx.save();
+    ctx.translate(x + drawW, y);
+    ctx.scale(-1, 1);
+    ctx.drawImage(sourceVideo, sx, sy, sw, sh, 0, 0, drawW, drawH);
+    ctx.restore();
+  }else{
+    ctx.drawImage(sourceVideo, sx, sy, sw, sh, x, y, drawW, drawH);
+  }
+}
+
+function drawHalfCamera(ctx, camVideo, totalW, totalH){
+  if(!vid || !camVideo) return;
+  const baseW = vid.videoWidth;
+  const baseH = vid.videoHeight;
+  const camW = camVideo.videoWidth;
+  const camH = camVideo.videoHeight;
+  if(!baseW || !baseH || !camW || !camH) return;
+
+  const desiredAspect = baseW / baseH;
+  const camAspect = camW / camH;
+
+  let sx = 0, sy = 0, sw = camW, sh = camH;
+  if(camAspect > desiredAspect){
+    // Cámara más panorámica: recortar laterales.
+    const desiredW = camH * desiredAspect;
+    sx = (camW - desiredW) / 2;
+    sw = desiredW;
+  }else{
+    // Cámara más vertical: recortar arriba/abajo.
+    const desiredH = camW / desiredAspect;
+    sy = (camH - desiredH) / 2;
+    sh = desiredH;
+  }
+
+  const halfW = totalW / 2;
+  const scale = Math.min(halfW / baseW, totalH / baseH);
+  const drawW = baseW * scale;
+  const drawH = baseH * scale;
+  const centerX = totalW / 2;
+  const x = centerX;
+  const y = (totalH - drawH) / 2;
+
+  // Dibuja la cámara en modo espejo (flip horizontal)
+  ctx.save();
+  ctx.translate(x + drawW, y);
+  ctx.scale(-1, 1);
+  ctx.drawImage(camVideo, sx, sy, sw, sh, 0, 0, drawW, drawH);
+  ctx.restore();
+}
+
+function startCanvasDrawing(){
+  if(!recordCanvas) return;
+  canvasCtx = recordCanvas.getContext("2d");
+  if(drawAnimationId) cancelAnimationFrame(drawAnimationId);
+
+  const draw = ()=>{
+    if(!canvasCtx) return;
+    const w = recordCanvas.width = window.innerWidth;
+    const h = recordCanvas.height = window.innerHeight;
+    canvasCtx.fillStyle = "#1b0024";
+    canvasCtx.fillRect(0,0,w,h);
+
+    const videoReady = vid && vid.videoWidth > 0 && vid.videoHeight > 0;
+    const camReady = camPreview && camPreview.videoWidth > 0 && camPreview.videoHeight > 0;
+
+    canvasCtx.save();
+
+    if(videoReady){
+      // Aplicar los mismos ajustes de imagen del vídeo también en la grabación
+      canvasCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+      drawHalfVideo(canvasCtx, vid, w, h, "left");
+    }
+
+    if(videoReady && camReady){
+      // Ajustes de imagen específicos para la cámara (en modo espejo)
+      canvasCtx.filter = `contrast(${camContrast}) saturate(${camSaturation}) brightness(${camBrightness})`;
+      drawHalfCamera(canvasCtx, camPreview, w, h);
+    }
+
+    canvasCtx.restore();
+
+    drawAnimationId = requestAnimationFrame(draw);
+  };
+  draw();
+}
+
+async function enableCameraPreview(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    alert("Tu navegador no permite acceder a la cámara.");
+    return;
+  }
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+    if(camPreview){
+      camPreview.srcObject = camStream;
+      camPreview.muted = true;
+      camPreview.playsInline = true;
+      camPreview.play().catch(()=>{});
+    }
+    document.body.classList.add("camera-mode");
+    startCanvasDrawing();
+    cameraState = "preview";
+    setCamButtonMode("preview");
+    if(camExitRow){
+      camExitRow.classList.remove("hidden");
+    }
+    if(camExitBtn){
+      camExitBtn.classList.remove("disabled");
+    }
+  }catch(err){
+    console.error("Error al acceder a la cámara:", err);
+    alert("No se pudo acceder a la cámara.");
+  }
+}
+
+function cleanupCamera(){
+  if(camStream){
+    camStream.getTracks().forEach(t=>t.stop());
+    camStream = null;
+  }
+  if(drawAnimationId) cancelAnimationFrame(drawAnimationId);
+  drawAnimationId = null;
+  canvasCtx = null;
+  document.body.classList.remove("camera-mode");
+  if(camExitRow){
+    camExitRow.classList.add("hidden");
+  }
+  if(camExitBtn){
+    camExitBtn.classList.add("disabled");
+  }
+}
+
+function startRecordingCanvas(){
+  if(!recordCanvas || !recordCanvas.captureStream){
+    alert("La grabación de pantalla no es compatible en este navegador.");
+    return;
+  }
+  const stream = recordCanvas.captureStream(25);
+  recordStream = stream;
+
+  // Intentar añadir el audio del vídeo de referencia, si el navegador lo permite.
+  try{
+    const vStream = vid.captureStream ? vid.captureStream() : (vid.mozCaptureStream ? vid.mozCaptureStream() : null);
+    if(vStream){
+      vStream.getAudioTracks().forEach(track=>{
+        recordStream.addTrack(track);
+      });
+    }
+  }catch(e){
+    console.warn("No se pudo adjuntar audio del vídeo a la grabación:", e);
+  }
+
+  let mimeType = "";
+  if(window.MediaRecorder && MediaRecorder.isTypeSupported){
+    if(MediaRecorder.isTypeSupported("video/mp4;codecs=avc1.42E01E,mp4a.40.2")){
+      mimeType = "video/mp4;codecs=avc1.42E01E,mp4a.40.2";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")){
+      mimeType = "video/webm;codecs=vp9,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")){
+      mimeType = "video/webm;codecs=vp8,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm")){
+      mimeType = "video/webm";
+    }
+  }
+
+  try{
+    mediaRecorder = mimeType ? new MediaRecorder(recordStream,{ mimeType }) : new MediaRecorder(recordStream);
+  }catch(err){
+    console.error("Error al iniciar MediaRecorder:", err);
+    alert("No se pudo iniciar la grabación en este navegador.");
+    return;
+  }
+
+  recordedChunks = [];
+  mediaRecorder.ondataavailable = (e)=>{
+    if(e.data && e.data.size > 0){
+      recordedChunks.push(e.data);
+    }
+  };
+  mediaRecorder.onstop = ()=>{
+    const finalMime = mediaRecorder.mimeType || mimeType || "video/webm";
+    const isMp4 = finalMime.indexOf("mp4") !== -1;
+    const blob = new Blob(recordedChunks,{ type: finalMime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+
+    const baseName = currentFile && currentFile.name ? currentFile.name.replace(/\.[^.]+$/, "") : "motiva_recording";
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm   = String(now.getMonth() + 1).padStart(2, "0");
+    const dd   = String(now.getDate()).padStart(2, "0");
+    const hh   = String(now.getHours()).padStart(2, "0");
+    const mi   = String(now.getMinutes()).padStart(2, "0");
+    const ss   = String(now.getSeconds()).padStart(2, "0");
+    const datePart = `${yyyy}-${mm}-${dd}`;
+    const timePart = `${hh}-${mi}-${ss}`;
+    const ext   = isMp4 ? ".mp4" : ".webm";
+    a.download = `${baseName}_dualview_${datePart}_${timePart}${ext}`;
+
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },100);
+  };
+
+  mediaRecorder.start();
+  cameraState = "recording";
+  setCamButtonMode("recording");
+}
+
+function stopRecordingCanvas(){
+  if(mediaRecorder && mediaRecorder.state !== "inactive"){
+    mediaRecorder.stop();
+  }
+  if(recordStream){
+    recordStream.getTracks().forEach(t=>t.stop());
+    recordStream = null;
+  }
+  cameraState = "preview";
+  setCamButtonMode("preview");
+}
+
+function exitCameraCompletely(){
+  // Si se está grabando, detenemos primero la grabación (lo que también guarda el archivo)
+  if(cameraState === "recording"){
+    stopRecordingCanvas();
+  }
+  // Limpia cámara, canvas y vuelve al modo normal
+  cleanupCamera();
+  cameraState = "idle";
+  setCamButtonMode("idle");
+}
+
+// Comportamiento del botón de cámara:
+//  - idle     -> activar cámara y vista previa (pantalla dividida)
+//  - preview  -> comenzar grabación
+//  - recording-> detener grabación (manteniendo la cámara activa)
+if(camBtn){
+  setCamButtonMode("idle");
+  camBtn.addEventListener("click", async ()=>{
+    if(controlsLocked) return;
+    pulse(camBtn);
+    if(cameraState === "idle"){
+      await enableCameraPreview();
+    }else if(cameraState === "preview"){
+      startRecordingCanvas();
+    }else if(cameraState === "recording"){
+      stopRecordingCanvas();
+    }
+  });
+}
+
+if(camExitBtn){
+  camExitBtn.addEventListener("click", ()=>{
+    if(controlsLocked) return;
+    pulse(camExitBtn);
+    exitCameraCompletely();
+  });
+}
+
+window.addEventListener("beforeunload", ()=>{
+  cleanupCamera();
+  if(recordStream){
+    recordStream.getTracks().forEach(t=>t.stop());
+  }
+});
+
+
+resetInactivityTimer();
+
+rate = 1;
+vid.playbackRate = 1;
+volRange.value = vid.volume;
+updateRateUI();
+updateVolumeUI();
+updateInfoMeta();
+updateProgressUI();
+updateVideoFilters();
+if(fileNameLabel) fileNameLabel.textContent = APP_TITLE;
+applyVideoTransform();
+applyButtonThemeFromControls();
+initCutProgress();
+</script>
+
+</body>
+</html>
