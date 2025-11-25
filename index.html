@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MOTIVA PLAYER</title>
+<title>Motiva Player</title>
 <style>
   :root{
     --btn-bg: rgba(255,255,255,.18);
@@ -99,10 +99,61 @@
     align-items:center;
     gap:.8rem;
   }
+  .ab-bubble{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    padding:4px 10px;
+    border-radius:999px;
+    background:var(--btn-bg);
+    border:1px solid var(--btn-border);
+    backdrop-filter:blur(4px);
+  }
   .btn{min-width:42px;height:42px;border-radius:50%;background:var(--btn-bg);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;border:1px solid var(--btn-border);position:relative;color:#fff}
   .btn:hover{background:var(--btn-bg-hover)}
   .btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;opacity:.95}
   #playIcon path{fill:#fff;stroke:none;}
+
+  /* Progreso circular para el botón de corte A-B */
+  #cutBtn {
+    position: relative;
+    overflow: hidden;
+  }
+  #cutBtn .cut-icon{
+    transition:opacity .15s ease-out, transform .15s ease-out;
+  }
+  #cutBtn .cut-progress{
+    position:absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    pointer-events:none;
+    opacity:0;
+    transform:rotate(-90deg);
+    transition:opacity .15s ease-out;
+  }
+  #cutBtn .cut-progress-bg,
+  #cutBtn .cut-progress-fg{
+    fill:none;
+    stroke-width:3;
+  }
+  #cutBtn .cut-progress-bg{
+    stroke:rgba(255,255,255,.25);
+  }
+  #cutBtn .cut-progress-fg{
+    stroke:#fff;
+    stroke-linecap:round;
+    stroke-dasharray:100;
+    stroke-dashoffset:100;
+  }
+  #cutBtn.cut-processing .cut-icon{
+    opacity:0;
+    transform:scale(.9);
+  }
+  #cutBtn.cut-processing .cut-progress{
+    opacity:1;
+  }
 
 .btn--primary-start{
   box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 28px rgba(255,210,170,.95);
@@ -591,12 +642,34 @@
         <path d="M9 20l2 2-2 2"/>
       </svg>
     </div>
-    <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
-      <svg viewBox="0 0 24 24">
-        <path d="M18 6L6 18M6 6l12 12"/>
-      </svg>
+    <div class="ab-bubble hidden" id="abBubble">
+      <div class="btn disabled" id="cutBtn" data-tip="Cortar A-B">
+        <svg class="cut-icon" viewBox="0 0 24 24">
+          <!-- Tijeras en blanco, sin fondo, coherentes con el resto de iconos -->
+          <g stroke="#fff" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Aros de las tijeras -->
+            <circle cx="8" cy="9" r="2"/>
+            <circle cx="8" cy="15" r="2"/>
+            <!-- Eje central -->
+            <circle cx="11" cy="12" r="0.6" fill="#fff" stroke="#fff"/>
+            <!-- Hojas abiertas -->
+            <path d="M11 11.4 L18 8"/>
+            <path d="M11 12.6 L18 16"/>
+          </g>
+        </svg>
+        <svg class="cut-progress" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="cut-progress-bg" cx="18" cy="18" r="17"></circle>
+          <circle class="cut-progress-fg cut-progress-circle" cx="18" cy="18" r="17"></circle>
+        </svg>
+      </div>
+      <div class="btn" id="clearAB" data-tip="Desmarcar A-B">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </div>
     </div>
-  
+  </div>
+
   <div class="ctrl-row hidden" id="camExitRow">
     <div class="btn" id="camExitBtn" data-tip="Salir de cámara">
       <svg viewBox="0 0 24 24">
@@ -605,7 +678,6 @@
       </svg>
     </div>
   </div>
-</div>
 </div>
 
 <div class="img-pop ui-visible" id="imgPop">
@@ -697,7 +769,9 @@ const camExitBtn = document.querySelector("#camExitBtn");
 const camExitRow = document.querySelector("#camExitRow");
 const loopBtn   = document.querySelector("#loop");
 const camPreview = document.querySelector("#camPreview");
+const abBubble  = document.querySelector("#abBubble");
 const recordCanvas = document.querySelector("#recordCanvas");
+const cutBtn   = document.querySelector("#cutBtn");
 const clearABBtn= document.querySelector("#clearAB");
 const rateLabel = document.querySelector("#rateLabel");
 const speedDownBtn = document.querySelector("#speedDown");
@@ -781,6 +855,13 @@ let saturation = 1;
 let camContrast = 1;
 let camBrightness = 1;
 let camSaturation = 1;
+
+let cutProgressAnimId = null;
+let cutProgressStart = 0;
+let cutProgressDuration = 0;
+let cutProgressCircle = null;
+let cutProgressLength = 0;
+
 
 setControlsEnabled(false);
 
@@ -870,6 +951,45 @@ function updateVideoFilters(){
   vid.style.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
 }
 
+function initCutProgress(){
+  if(!cutBtn) return;
+  const circle = cutBtn.querySelector(".cut-progress-circle");
+  if(!circle) return;
+  cutProgressCircle = circle;
+  const r = circle.r.baseVal.value || 0;
+  const length = 2 * Math.PI * r;
+  cutProgressLength = length;
+  circle.style.strokeDasharray = length;
+  circle.style.strokeDashoffset = length;
+}
+
+function startCutProgress(durationMs){
+  if(!cutProgressCircle || !durationMs) return;
+  cutProgressDuration = durationMs;
+  cutProgressStart = performance.now();
+  if(cutProgressAnimId) cancelAnimationFrame(cutProgressAnimId);
+  const step = (now)=>{
+    const elapsed = now - cutProgressStart;
+    const ratio = Math.min(1, elapsed / cutProgressDuration);
+    const offset = cutProgressLength * (1 - ratio);
+    cutProgressCircle.style.strokeDashoffset = offset;
+    if(ratio < 1){
+      cutProgressAnimId = requestAnimationFrame(step);
+    }else{
+      cutProgressAnimId = null;
+    }
+  };
+  cutProgressAnimId = requestAnimationFrame(step);
+}
+
+function resetCutProgress(){
+  if(cutProgressAnimId) cancelAnimationFrame(cutProgressAnimId);
+  cutProgressAnimId = null;
+  if(cutProgressCircle){
+    cutProgressCircle.style.strokeDashoffset = cutProgressLength;
+  }
+}
+
 function updateTimeLabels(){
   const cur = vid.currentTime || 0;
   const total = (vid.duration && isFinite(vid.duration)) ? vid.duration : 0;
@@ -880,6 +1000,17 @@ function updateTimeLabels(){
 function updateLoopBtnState(){
   const hasMarks = (A != null && B != null);
   loopBtn.classList.toggle("active", hasMarks);
+  if (cutBtn) {
+    if (hasMarks && loopAB) {
+      cutBtn.classList.remove("disabled");
+    } else {
+      cutBtn.classList.add("disabled");
+    }
+  }
+  if (abBubble) {
+    const visible = hasMarks && loopAB;
+    abBubble.classList.toggle("hidden", !visible);
+  }
 }
 
 function formatTimeWithTenths(t){
@@ -1090,6 +1221,180 @@ loopBtn.onclick=()=>{
   updateLoopBtnState();
   updateProgressUI();
 };
+
+if (cutBtn){
+  cutBtn.addEventListener("click", ()=>{
+    if(controlsLocked) return;
+    pulse(cutBtn);
+    performCutAB();
+  });
+}
+
+function formatTimeForFileName(t){
+  if(t == null || !isFinite(t)) return "00-00-00.0";
+  const total = Math.max(0, t);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = Math.floor(total % 60);
+  const tenths = Math.floor((total - Math.floor(total)) * 10);
+  return String(hours).padStart(2,"0") + "-" +
+         String(minutes).padStart(2,"0") + "-" +
+         String(seconds).padStart(2,"0") + "." +
+         tenths;
+}
+
+async function performCutAB(){
+  if(!currentFile || !loopAB || A == null || B == null){
+    alert("Activa el bucle A-B y marca los puntos A y B antes de cortar.");
+    return;
+  }
+  if(!(vid.duration && isFinite(vid.duration))){
+    alert("El vídeo aún no está listo para cortar.");
+    return;
+  }
+  const start = Math.min(A, B);
+  const end   = Math.max(A, B);
+  if(end - start < MIN_AB_GAP){
+    alert("El tramo A-B es demasiado corto para cortar.");
+    return;
+  }
+
+  const capture = vid.captureStream ? vid.captureStream.bind(vid) :
+                  (vid.mozCaptureStream ? vid.mozCaptureStream.bind(vid) : null);
+  if(!capture){
+    alert("Tu navegador no permite capturar el vídeo para cortar.");
+    return;
+  }
+
+  let stream;
+  try{
+    stream = capture();
+  }catch(err){
+    console.error("No se pudo iniciar la captura del vídeo:", err);
+    alert("No se pudo iniciar la captura del vídeo.");
+    return;
+  }
+  if(!stream){
+    alert("No se pudo iniciar la captura del vídeo.");
+    return;
+  }
+
+  cutBtn.classList.add("disabled");
+  cutBtn.classList.add("cut-processing");
+
+  const wasPaused     = vid.paused;
+  const originalRate  = vid.playbackRate;
+  const originalTime  = vid.currentTime;
+
+  vid.pause();
+  vid.playbackRate = 1;
+
+  let mimeType = "";
+  if(window.MediaRecorder && MediaRecorder.isTypeSupported){
+    if(MediaRecorder.isTypeSupported("video/mp4;codecs=avc1.42E01E,mp4a.40.2")){
+      mimeType = "video/mp4;codecs=avc1.42E01E,mp4a.40.2";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")){
+      mimeType = "video/webm;codecs=vp9,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")){
+      mimeType = "video/webm;codecs=vp8,opus";
+    }else if(MediaRecorder.isTypeSupported("video/webm")){
+      mimeType = "video/webm";
+    }
+  }
+
+  let recorder;
+  try{
+    recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  }catch(err){
+    console.error("Error al iniciar MediaRecorder para corte:", err);
+    alert("No se pudo iniciar la grabación para el corte.");
+    vid.playbackRate = originalRate;
+    vid.currentTime  = originalTime;
+    if(!wasPaused){
+      vid.play().catch(()=>{});
+    }
+    cutBtn.classList.remove("disabled");
+    cutBtn.classList.remove("cut-processing");
+    resetCutProgress();
+    return;
+  }
+
+  const chunks = [];
+  recorder.ondataavailable = (e)=>{
+    if(e.data && e.data.size > 0){
+      chunks.push(e.data);
+    }
+  };
+
+  const durationMs = (end - start) * 1000;
+
+  startCutProgress(durationMs);
+
+  const stopPromise = new Promise((resolve)=>{
+    recorder.onstop = ()=>resolve();
+  });
+
+  const seekPromise = new Promise((resolve)=>{
+    const onSeeked = ()=>{
+      vid.removeEventListener("seeked", onSeeked);
+      vid.play().catch(()=>{});
+      recorder.start();
+      setTimeout(()=>{
+        try{ recorder.stop(); }catch(_){}
+        vid.pause();
+      }, durationMs);
+      resolve();
+    };
+    vid.addEventListener("seeked", onSeeked);
+  });
+
+  vid.currentTime = start;
+
+  try{
+    await seekPromise;
+    await stopPromise;
+  }catch(err){
+    console.error("Error durante el corte A-B:", err);
+  }
+
+  vid.playbackRate = originalRate;
+  vid.currentTime  = originalTime;
+  if(!wasPaused){
+    vid.play().catch(()=>{});
+  }
+
+  const finalType = recorder.mimeType || mimeType || "video/webm";
+  const isMp4 = finalType.indexOf("mp4") !== -1;
+  const blob = new Blob(chunks, { type: finalType });
+
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm   = String(now.getMonth() + 1).padStart(2, "0");
+  const dd   = String(now.getDate()).padStart(2, "0");
+  const datePart = yyyy + "-" + mm + "-" + dd;
+
+  const baseName = currentFile && currentFile.name ? currentFile.name.replace(/\.[^.]+$/, "") : "motiva_cut";
+  const aName = formatTimeForFileName(start);
+  const bName = formatTimeForFileName(end);
+  const ext   = isMp4 ? ".mp4" : ".webm";
+  const fileName = baseName + "_" + datePart + "_" + aName + "_" + bName + ext;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1000);
+
+  cutBtn.classList.remove("disabled");
+  cutBtn.classList.remove("cut-processing");
+  resetCutProgress();
+}
+
 
 volumeBtn.onclick=(e)=>{
   pulse(volumeBtn);
@@ -1669,14 +1974,38 @@ function drawHalfVideo(ctx, sourceVideo, totalW, totalH, side){
   const videoW = sourceVideo.videoWidth;
   const videoH = sourceVideo.videoHeight;
   if(!videoW || !videoH) return;
+
   const halfW = totalW / 2;
-  const scale = Math.min(halfW / videoW, totalH / videoH);
-  const drawW = videoW * scale;
-  const drawH = videoH * scale;
+
+  // Escala base para que el vídeo encaje en su mitad de pantalla
+  const baseScale = Math.min(halfW / videoW, totalH / videoH);
+  const drawW = videoW * baseScale;
+  const drawH = videoH * baseScale;
   const centerX = totalW / 2;
   const x = side === "left" ? centerX - drawW : centerX;
   const y = (totalH - drawH) / 2;
-  ctx.drawImage(sourceVideo, 0, 0, videoW, videoH, x, y, drawW, drawH);
+
+  // Región de vídeo que se va a recortar (por defecto, todo el vídeo)
+  let sx = 0, sy = 0, sw = videoW, sh = videoH;
+
+  // Cuando es el vídeo de referencia ("left"), aplicamos zoom centrado con recorte
+  if(side === "left" && zoomLevel > 1){
+    const zoom = zoomLevel;
+    sw = videoW / zoom;
+    sh = videoH / zoom;
+    sx = (videoW - sw) / 2;
+    sy = (videoH - sh) / 2;
+  }
+
+  if(side === "left" && isMirrored){
+    ctx.save();
+    ctx.translate(x + drawW, y);
+    ctx.scale(-1, 1);
+    ctx.drawImage(sourceVideo, sx, sy, sw, sh, 0, 0, drawW, drawH);
+    ctx.restore();
+  }else{
+    ctx.drawImage(sourceVideo, sx, sy, sw, sh, x, y, drawW, drawH);
+  }
 }
 
 function drawHalfCamera(ctx, camVideo, totalW, totalH){
@@ -1711,7 +2040,12 @@ function drawHalfCamera(ctx, camVideo, totalW, totalH){
   const x = centerX;
   const y = (totalH - drawH) / 2;
 
-  ctx.drawImage(camVideo, sx, sy, sw, sh, x, y, drawW, drawH);
+  // Dibuja la cámara en modo espejo (flip horizontal)
+  ctx.save();
+  ctx.translate(x + drawW, y);
+  ctx.scale(-1, 1);
+  ctx.drawImage(camVideo, sx, sy, sw, sh, 0, 0, drawW, drawH);
+  ctx.restore();
 }
 
 function startCanvasDrawing(){
@@ -1738,7 +2072,7 @@ function startCanvasDrawing(){
     }
 
     if(videoReady && camReady){
-      // Ajustes de imagen específicos para la cámara
+      // Ajustes de imagen específicos para la cámara (en modo espejo)
       canvasCtx.filter = `contrast(${camContrast}) saturate(${camSaturation}) brightness(${camBrightness})`;
       drawHalfCamera(canvasCtx, camPreview, w, h);
     }
@@ -1850,8 +2184,20 @@ function startRecordingCanvas(){
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
+
     const baseName = currentFile && currentFile.name ? currentFile.name.replace(/\.[^.]+$/, "") : "motiva_recording";
-    a.download = baseName + (isMp4 ? ".mp4" : ".webm");
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm   = String(now.getMonth() + 1).padStart(2, "0");
+    const dd   = String(now.getDate()).padStart(2, "0");
+    const hh   = String(now.getHours()).padStart(2, "0");
+    const mi   = String(now.getMinutes()).padStart(2, "0");
+    const ss   = String(now.getSeconds()).padStart(2, "0");
+    const datePart = `${yyyy}-${mm}-${dd}`;
+    const timePart = `${hh}-${mi}-${ss}`;
+    const ext   = isMp4 ? ".mp4" : ".webm";
+    a.download = `${baseName}_dualview_${datePart}_${timePart}${ext}`;
+
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{
@@ -1936,6 +2282,7 @@ updateVideoFilters();
 if(fileNameLabel) fileNameLabel.textContent = APP_TITLE;
 applyVideoTransform();
 applyButtonThemeFromControls();
+initCutProgress();
 </script>
 
 </body>
