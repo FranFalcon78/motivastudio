@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MemoDance Web — Registro completo</title>
+<style>
+  :root{
+    --bg:#050712;
+    --panel:#111528;
+    --accent:#c94055;
+    --border:rgba(255,255,255,0.18);
+    --text:#f4f6ff;
+    --muted:#aab1d2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+            background:radial-gradient(circle at top,#1a2144 0,#050712 52%,#020309 100%);color:var(--text);}
+  body::before{
+    content:"";
+    position:fixed;
+    inset:-40px;
+    background:
+      radial-gradient(circle at 10% 0%,rgba(255,255,255,0.12),transparent 55%),
+      radial-gradient(circle at 90% 10%,rgba(201,64,85,0.35),transparent 55%),
+      radial-gradient(circle at 50% 90%,rgba(42,110,255,0.35),transparent 55%);
+    filter:blur(40px);
+    opacity:.5;
+    z-index:-1;
+  }
+  .brand{
+    position:fixed;
+    top:10px;
+    left:14px;
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:999px;
+    background:rgba(0,0,0,0.45);
+    color:#fff;
+    border:1px solid rgba(255,255,255,0.18);
+    letter-spacing:.03em;
+    z-index:20;
+    user-select:none;
+  }
+  .wrap{
+    min-height:100%;
+    padding:70px 16px 20px;
+    display:flex;
+    justify-content:center;
+  }
+  .card{
+    width:min(1180px,100%);
+    background:rgba(7,10,25,0.9);
+    border-radius:24px;
+    border:1px solid var(--border);
+    box-shadow:0 18px 45px rgba(0,0,0,0.65);
+    backdrop-filter:blur(16px);
+    padding:18px 18px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  h1{
+    font-size:20px;
+    margin:0;
+  }
+  .subtitle{
+    font-size:13px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .btn-ghost{
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.28);
+    background:transparent;
+    padding:5px 12px;
+    color:var(--text);
+    font-size:12px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn-ghost:hover{
+    background:rgba(255,255,255,0.08);
+  }
+  .table-wrapper{
+    margin-top:6px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:radial-gradient(circle at top left,rgba(255,255,255,0.04),transparent 55%);
+    overflow:auto;
+    max-height:60vh;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  thead{
+    position:sticky;
+    top:0;
+    background:rgba(7,10,25,0.98);
+    z-index:1;
+  }
+  th,td{
+    padding:6px 8px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  th{
+    text-align:left;
+    font-weight:500;
+    color:var(--muted);
+    font-size:12px;
+  }
+  td.center,th.center{text-align:center}
+  tbody tr:nth-child(even){
+    background:rgba(5,8,22,0.78);
+  }
+  tbody tr:nth-child(odd){
+    background:rgba(6,9,24,0.94);
+  }
+  tbody tr.row-priority{
+    background:rgba(201,64,85,0.16);
+  }
+  tbody tr.row-priority td:nth-child(5){
+    color:#ffb4c0;
+    font-weight:600;
+  }
+  .actions{
+    white-space:nowrap;
+    text-align:right;
+  }
+  .btn-mini{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:4px;
+    padding:3px 7px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.25);
+    background:rgba(9,12,30,0.9);
+    color:var(--text);
+    font-size:11px;
+    cursor:pointer;
+    min-width:0;
+  }
+  .btn-mini:hover{
+    background:rgba(201,64,85,0.9);
+    border-color:rgba(255,255,255,0.45);
+  }
+  .btn-mini-danger{
+    border-color:rgba(255,120,120,0.8);
+    color:#ffd6d6;
+  }
+  .btn-mini-danger:hover{
+    background:rgba(255,80,80,0.9);
+  }
+  .footer{
+    margin-top:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:11px;
+    color:var(--muted);
+    gap:10px;
+  }
+  @media(max-width:900px){
+    .card{
+      padding:16px 12px 12px;
+    }
+    .table-wrapper{
+      max-height:55vh;
+    }
+    .footer{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="brand">MemoDance Web — Registro</div>
+<div class="wrap">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h1>Registro completo de figuras y vídeos</h1>
+        <div class="subtitle">
+          Aquí ves todos los elementos de MemoDance, con su último día practicado, nivel, arrastre y próxima cita.
+        </div>
+      </div>
+      <div>
+        <button type="button" id="backBtn" class="btn-ghost">← Volver a la agenda</button>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Vídeo / Figura</th>
+            <th class="center">Nivel</th>
+            <th class="center">Últ. hecho</th>
+            <th class="center">Creado</th>
+            <th class="center">Arrastre</th>
+            <th class="center">Próx. cita</th>
+            <th>Vínculo</th>
+            <th>Notas</th>
+            <th class="center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="allBody"></tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <div id="summary"></div>
+      <div>Consejo: usa el nivel 1 para figuras nuevas y ve subiendo según las vayas consolidando.</div>
+    </div>
+  </div>
+</div>
+
+<script src="memodance_core.js"></script>
+<script>
+(function(){
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c;
+    });
+  }
+
+  const state = window.MemoDance.loadState();
+  const tbody = document.getElementById('allBody');
+  const summaryEl = document.getElementById('summary');
+
+  document.getElementById('backBtn').addEventListener('click', function(){
+    window.location.href = 'index.html';
+  });
+
+  function refreshAll(){
+    const today = new Date();
+    window.MemoDance.computePriorityFlags(state, today);
+    window.MemoDance.saveState(state);
+
+    tbody.innerHTML = '';
+
+    const items = state.items.slice().sort(function(a,b){
+      const la = Number(a.level)||1;
+      const lb = Number(b.level)||1;
+      if(la !== lb) return la - lb;
+      const na = (a.name || '').toLowerCase();
+      const nb = (b.name || '').toLowerCase();
+      if(na < nb) return -1;
+      if(na > nb) return 1;
+      return 0;
+    });
+
+    const baseDate = new Date(today.getTime());
+    baseDate.setHours(0,0,0,0);
+
+    items.forEach(function(it){
+      const tr = document.createElement('tr');
+      tr.dataset.id = String(it.id);
+      if(it.priority){
+        tr.classList.add('row-priority');
+      }
+
+      const lastDone = it.last_done || '';
+      const created = it.created_at || '';
+      const next = window.MemoDance.nextDueDate(it.level, baseDate);
+      const nextIso = window.MemoDance.formatDateISO(next) || '';
+      const arrastre = it.priority ? 'Sí' : 'No';
+
+      tr.innerHTML =
+        '<td>' + escapeHtml(it.name || '') + '</td>' +
+        '<td class="center">' + (it.level || 1) + '</td>' +
+        '<td class="center">' + escapeHtml(lastDone) + '</td>' +
+        '<td class="center">' + escapeHtml(created) + '</td>' +
+        '<td class="center">' + arrastre + '</td>' +
+        '<td class="center">' + escapeHtml(nextIso) + '</td>' +
+        '<td>' + escapeHtml(it.link || '') + '</td>' +
+        '<td>' + escapeHtml(it.notes || '') + '</td>' +
+        '<td class="actions">' +
+          '<button type="button" class="btn-mini" data-act="open">Abrir</button>' +
+          '<button type="button" class="btn-mini" data-act="done">Hecho</button>' +
+          '<button type="button" class="btn-mini" data-act="level">Nivel</button>' +
+          '<button type="button" class="btn-mini" data-act="notes">Notas</button>' +
+          '<button type="button" class="btn-mini" data-act="link">Vínculo</button>' +
+          '<button type="button" class="btn-mini btn-mini-danger" data-act="delete">✕</button>' +
+        '</td>';
+
+      tbody.appendChild(tr);
+    });
+
+    summaryEl.textContent = 'Figuras totales: ' + items.length;
+  }
+
+  tbody.addEventListener('click', function(ev){
+    const btn = ev.target.closest('button[data-act]');
+    if(!btn) return;
+    const tr = btn.closest('tr');
+    if(!tr) return;
+    const id = tr.dataset.id;
+    const item = state.items.find(function(it){ return String(it.id) === String(id); });
+    if(!item) return;
+
+    const act = btn.dataset.act;
+    if(act === 'open'){
+      openInCursoPlayer(item);
+    }else if(act === 'done'){
+      window.MemoDance.markDoneToday(state, id);
+      refreshAll();
+    }else if(act === 'level'){
+      const current = item.level || 1;
+      const input = prompt('Nuevo nivel (1-6):', current);
+      if(input === null) return;
+      const n = parseInt(input, 10);
+      if(!(n >= 1 && n <= 6)){
+        alert('Nivel no válido. Debe estar entre 1 y 6.');
+        return;
+      }
+      window.MemoDance.changeLevel(state, id, n);
+      refreshAll();
+    }else if(act === 'notes'){
+      const input = prompt('Notas para esta figura:', item.notes || '');
+      if(input === null) return;
+      window.MemoDance.editNotes(state, id, input);
+      refreshAll();
+    }else if(act === 'link'){
+      const input = prompt('Vínculo (ruta local o URL):', item.link || '');
+      if(input === null) return;
+      window.MemoDance.editLink(state, id, input);
+      refreshAll();
+    }else if(act === 'delete'){
+      if(confirm('¿Eliminar esta figura de forma permanente?')){
+        window.MemoDance.deleteItem(state, id);
+        refreshAll();
+      }
+    }
+  });
+
+  function openInCursoPlayer(item){
+    const link = (item.link || '').trim();
+    if(!link){
+      alert('Este elemento no tiene vínculo configurado. Usa "Vínculo" para añadir una ruta local o una URL.');
+      return;
+    }
+    try{
+      localStorage.setItem('cursoplayer_last_link', link);
+    }catch(e){}
+
+    const base = 'https://franfalcon78.github.io/cursoplayerweb/';
+    if(/^https?:/i.test(link)){
+      window.open(base + '?src=' + encodeURIComponent(link), '_blank');
+    }else{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(link).catch(function(){});
+      }
+      window.open(base, '_blank');
+      alert(
+        'He guardado este vínculo como "último vídeo" en el navegador.\n' +
+        'Por seguridad el navegador no puede abrir archivos locales automáticamente.\n' +
+        'Abre CursoPlayerWeb y selecciona manualmente el archivo correspondiente.'
+      );
+    }
+  }
+
+  refreshAll();
+})();
+</script>
+</body>
+</html>
