@@ -499,6 +499,25 @@
     box-shadow:0 0 0 2px rgba(255,120,120,.95),0 0 28px rgba(255,80,80,.9);
   }
 
+
+  .zone-zoom-overlay{
+    position:absolute;
+    inset:0;
+    z-index:20;
+    pointer-events:none;
+    cursor:default;
+  }
+  .zone-zoom-overlay-active{
+    pointer-events:auto;
+    cursor:crosshair;
+  }
+  .zone-zoom-rect{
+    position:absolute;
+    border:2px solid #ff4444;
+    background:rgba(255,68,68,.15);
+    display:none;
+    box-shadow:0 0 0 1px rgba(0,0,0,.4);
+  }
 </style>
 </head>
 <body>
@@ -522,6 +541,10 @@
 <video id="camPreview" playsinline muted></video>
 <!-- Lienzo donde se compone el vídeo + cámara y que además se captura para grabar -->
 <canvas id="recordCanvas"></canvas>
+
+<div id="zoneZoomOverlay" class="zone-zoom-overlay">
+  <div id="zoneZoomRect" class="zone-zoom-rect"></div>
+</div>
 
 <div class="seek ui-visible" id="seek">
   <div class="seek-inner" id="seekInner">
@@ -559,6 +582,14 @@
         <path d="M16 16l4 4"/>
         <path d="M11 8v6"/>
         <path d="M8 11h6"/>
+      </svg>
+    </div>
+    <div class="btn" id="zoneZoomBtn" data-tip="Lupa de zona">
+      <svg viewBox="0 0 24 24">
+        <rect x="4" y="4" width="10" height="10" rx="2"/>
+        <path d="M15 15l4 4"/>
+        <path d="M8 9h4"/>
+        <path d="M10 7v4"/>
       </svg>
     </div>
     <div class="btn" id="infoBtn" data-tip="Información">
@@ -736,6 +767,7 @@
 <script>
 window.addEventListener('load',()=>{ const s=document.querySelector('#splash'); if(s){ s.style.opacity='1'; }});
 const vid = document.querySelector("#vid");
+vid.style.transformOrigin = "center center";
 const file = document.querySelector("#file");
 const seek = document.querySelector("#seek");
 const bgFrame = document.querySelector("#bgFrame");
@@ -761,6 +793,9 @@ markBEl.appendChild(markBLabel);
 
 const openBtn   = document.querySelector("#open");
 const zoomBtn   = document.querySelector("#zoomBtn");
+const zoneZoomBtn = document.querySelector("#zoneZoomBtn");
+const zoneZoomOverlay = document.querySelector("#zoneZoomOverlay");
+const zoneZoomRectEl = document.querySelector("#zoneZoomRect");
 const playBtn   = document.querySelector("#play");
 const playShape = document.querySelector("#playShape");
 const mirrorBtn = document.querySelector("#mirror");
@@ -821,6 +856,12 @@ function setControlsEnabled(enabled){
 let A=null,B=null, loopAB=false, rate=1, isMirrored=false;
 let zoomLevel = 1;
 let autoHideEnabled = false;
+let zoneZoomActive = false;
+let zoneZoomDrawing = false;
+let zoneZoomSelectionDone = false;
+let zoneZoomRectNorm = null;
+let zoneZoomStartX = 0;
+let zoneZoomStartY = 0;
 
 // Estado de cámara y grabación
 let cameraState = "idle"; // idle | preview | recording
@@ -830,6 +871,8 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let canvasCtx = null;
 let drawAnimationId = null;
+let offscreenCanvas = null;
+let offscreenCtx = null;
 let autoHideWasEnabledBeforeInfo = false;
 
 function restoreAutoHideIfNeeded(){
@@ -871,6 +914,11 @@ document.addEventListener("keydown",(e)=>{
     e.preventDefault();
     return;
   }
+  if(e.code === "Space"){
+    e.preventDefault();
+    togglePlayPause();
+    return;
+  }
   if(e.key === "ArrowLeft"){
     e.preventDefault();
     seekRelative(-10);
@@ -904,11 +952,81 @@ function updateVolumeUI(){
   volumeBtn.classList.toggle("active", vid.volume > 0);
 }
 
-function applyVideoTransform(){
-  if(isMirrored){
-    vid.style.transform = `scale(${-zoomLevel}, ${zoomLevel})`;
+
+function getActiveVisualRect(){
+  // Devuelve el rectángulo del área visual activa sobre la que actúa la lupa de zona:
+  // - En modo cámara: el canvas de grabación (recordCanvas).
+  // - En modo vídeo normal: el elemento de vídeo principal (vid).
+  if(document.body.classList.contains("camera-mode") && recordCanvas){
+    return recordCanvas.getBoundingClientRect();
+  }
+  return vid.getBoundingClientRect();
+}
+
+function applyVideoTransform(options){
+  const opts = options || {};
+  const animateMs = typeof opts.animateMs === "number" ? opts.animateMs : 0;
+
+  // ¿Hay un zoom de zona activo con una selección válida?
+  const useZoneZoom = zoneZoomActive && zoneZoomSelectionDone && !!zoneZoomRectNorm;
+  const inCameraMode = document.body.classList.contains("camera-mode");
+
+  let transformStr = "";
+  // Solo aplicamos la transform de lupa de zona como CSS cuando NO estamos en modo cámara.
+  // En modo cámara, el recorte/zoom se aplica dentro de startCanvasDrawing sobre recordCanvas.
+  if(useZoneZoom && !inCameraMode){
+    const videoRect = vid.getBoundingClientRect();
+    const vw = videoRect.width;
+    const vh = videoRect.height;
+    if(vw > 0 && vh > 0){
+      // Si el vídeo está en modo espejo, invertimos la coordenada X de la selección
+      // para que la lupa amplíe la zona que el usuario ha señalado visualmente y no la contraria.
+      let normX = zoneZoomRectNorm.x;
+      const normY = zoneZoomRectNorm.y;
+      const normW = zoneZoomRectNorm.w;
+      const normH = zoneZoomRectNorm.h;
+      if(isMirrored){
+        normX = 1 - (zoneZoomRectNorm.x + zoneZoomRectNorm.w);
+      }
+
+      const rectLeft = videoRect.left + normX * vw;
+      const rectTop  = videoRect.top  + normY * vh;
+      const rectW    = normW * vw;
+      const rectH    = normH * vh;
+
+      const centerX = videoRect.left + vw / 2;
+      const centerY = videoRect.top  + vh / 2;
+      const cx = rectLeft + rectW / 2;
+      const cy = rectTop  + rectH / 2;
+
+      if(rectW > 0 && rectH > 0){
+        const baseScale = Math.min(vw / rectW, vh / rectH);
+        const scaleX = isMirrored ? -baseScale : baseScale;
+        const scaleY = baseScale;
+        const tx = -scaleX * (cx - centerX);
+        const ty = -scaleY * (cy - centerY);
+        transformStr = `translate(${tx}px, ${ty}px) scale(${scaleX}, ${scaleY})`;
+      }
+    }
+  }
+
+  // Si no hay transform válida de zona, usamos el zoom normal
+  if(!transformStr){
+    const s = zoomLevel;
+    if(isMirrored){
+      transformStr = `scale(${-s}, ${s})`;
+    }else{
+      transformStr = `scale(${s})`;
+    }
+  }
+
+  if(animateMs > 0){
+    vid.style.transition = `transform ${animateMs}ms ease-out`;
+    requestAnimationFrame(()=>{ vid.style.transform = transformStr; });
+    setTimeout(()=>{ vid.style.transition = ""; }, animateMs + 60);
   }else{
-    vid.style.transform = `scale(${zoomLevel})`;
+    vid.style.transition = "";
+    vid.style.transform = transformStr;
   }
 }
 
@@ -943,7 +1061,9 @@ function setCamButtonMode(mode){
 }
 
 function updateZoomUI(){
-  zoomBtn.classList.toggle("active", Math.abs(zoomLevel-1) > 0.001);
+  if(zoomBtn){
+    zoomBtn.classList.toggle("active", Math.abs(zoomLevel-1) > 0.001);
+  }
   applyVideoTransform();
 }
 
@@ -1041,10 +1161,183 @@ zoomBtn.onclick = ()=>{
   updateZoomUI();
 };
 
+// -------------------------------
+// Lupa de zona (zoom de zona selectivo)
+// -------------------------------
+if(zoneZoomBtn && zoneZoomOverlay && zoneZoomRectEl){
+  zoneZoomBtn.onclick = ()=>{
+    if(zoneZoomBtn.classList.contains("disabled") || document.body.classList.contains("camera-mode")){
+      return;
+    }
+    pulse(zoneZoomBtn);
+    // Toggle del modo de zoom de zona
+    if(!zoneZoomActive){
+      activateZoneZoomMode();
+    }else{
+      deactivateZoneZoomMode(true);
+    }
+  };
+
+  zoneZoomOverlay.addEventListener("pointerdown",(e)=>{
+    if(!zoneZoomActive || zoneZoomSelectionDone) return;
+    const areaRect = getActiveVisualRect();
+    // Solo empezamos selección si el clic cae dentro del área visual activa
+    if(e.clientX < areaRect.left || e.clientX > areaRect.right ||
+       e.clientY < areaRect.top  || e.clientY > areaRect.bottom){
+      return;
+    }
+    zoneZoomDrawing = true;
+    zoneZoomStartX = e.clientX;
+    zoneZoomStartY = e.clientY;
+    zoneZoomRectEl.style.display = "block";
+    updateZoneZoomRect(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+
+  zoneZoomOverlay.addEventListener("pointermove",(e)=>{
+    if(!zoneZoomDrawing) return;
+    const areaRect = getActiveVisualRect();
+    const clampedX = Math.max(areaRect.left, Math.min(e.clientX, areaRect.right));
+    const clampedY = Math.max(areaRect.top,  Math.min(e.clientY, areaRect.bottom));
+    updateZoneZoomRect(clampedX, clampedY);
+  });
+
+  const finishSelection = (clientX, clientY)=>{
+    if(!zoneZoomDrawing) return;
+    zoneZoomDrawing = false;
+    updateZoneZoomRect(clientX, clientY);
+
+    const rect = zoneZoomRectEl.getBoundingClientRect();
+    const minSize = 20;
+    if(rect.width < minSize || rect.height < minSize){
+      // Selección demasiado pequeña: la descartamos pero mantenemos el modo activo
+      zoneZoomRectEl.style.display = "none";
+      return;
+    }
+
+    const areaRect = getActiveVisualRect();
+    const clampedLeft = Math.max(rect.left, areaRect.left);
+    const clampedTop  = Math.max(rect.top,  areaRect.top);
+    const clampedRight  = Math.min(rect.right,  areaRect.right);
+    const clampedBottom = Math.min(rect.bottom, areaRect.bottom);
+    const finalW = Math.max(1, clampedRight - clampedLeft);
+    const finalH = Math.max(1, clampedBottom - clampedTop);
+
+    // Guardamos rectángulo en coordenadas relativas al área visual activa
+    zoneZoomRectNorm = {
+      x: (clampedLeft - areaRect.left) / areaRect.width,
+      y: (clampedTop  - areaRect.top)  / areaRect.height,
+      w: finalW / areaRect.width,
+      h: finalH / areaRect.height
+    };
+    zoneZoomSelectionDone = true;
+    zoneZoomOverlay.classList.remove("zone-zoom-overlay-active");
+    zoneZoomOverlay.style.pointerEvents = "none";
+    zoneZoomRectEl.style.display = "none";
+
+    // Animamos el salto al nuevo encuadre en 1 segundo
+    applyVideoTransform({ animateMs: 1000 });
+  };
+
+  zoneZoomOverlay.addEventListener("pointerup",(e)=>{
+    const areaRect = getActiveVisualRect();
+    const clampedX = Math.max(areaRect.left, Math.min(e.clientX, areaRect.right));
+    const clampedY = Math.max(areaRect.top,  Math.min(e.clientY, areaRect.bottom));
+    finishSelection(clampedX, clampedY);
+  });
+  zoneZoomOverlay.addEventListener("pointercancel",(e)=>{
+    const areaRect = getActiveVisualRect();
+    const clampedX = Math.max(areaRect.left, Math.min(e.clientX, areaRect.right));
+    const clampedY = Math.max(areaRect.top,  Math.min(e.clientY, areaRect.bottom));
+    finishSelection(clampedX, clampedY);
+  });
+}
+
+// Activa el modo de zoom de zona (esperando selección)
+function activateZoneZoomMode(){
+  zoneZoomActive = true;
+  zoneZoomSelectionDone = false;
+  zoneZoomRectNorm = null;
+  zoneZoomDrawing = false;
+  if(zoneZoomOverlay){
+    zoneZoomOverlay.classList.add("zone-zoom-overlay-active");
+    zoneZoomOverlay.style.pointerEvents = "auto";
+  }
+  if(zoneZoomRectEl){
+    zoneZoomRectEl.style.display = "none";
+  }
+  if(zoneZoomBtn){
+    zoneZoomBtn.classList.add("active","btn--primary-start","btn--recording");
+  }
+  // Desactivamos el zoom clásico mientras la lupa está activa
+  if(zoomBtn){
+    zoomBtn.classList.add("disabled");
+    zoomBtn.classList.remove("active");
+  }
+  // Desactivamos el botón de espejo mientras la lupa de zona está activa
+  if(mirrorBtn){
+    mirrorBtn.classList.add("disabled");
+  }
+  // Al entrar en modo lupa no cambiamos la transform: el encuadre se define al soltar la selección
+  applyVideoTransform();
+}
+
+// Desactiva completamente el zoom de zona y restaura el estado normal
+function deactivateZoneZoomMode(resetTransform){
+  zoneZoomActive = false;
+  zoneZoomSelectionDone = false;
+  zoneZoomRectNorm = null;
+  zoneZoomDrawing = false;
+  if(zoneZoomOverlay){
+    zoneZoomOverlay.classList.remove("zone-zoom-overlay-active");
+    zoneZoomOverlay.style.pointerEvents = "none";
+  }
+  if(zoneZoomRectEl){
+    zoneZoomRectEl.style.display = "none";
+  }
+  if(zoneZoomBtn){
+    zoneZoomBtn.classList.remove("active","btn--primary-start","btn--recording");
+  }
+  if(zoomBtn){
+    zoomBtn.classList.remove("disabled");
+  }
+  // Reactivamos el botón de espejo al salir de la lupa de zona
+  if(mirrorBtn){
+    mirrorBtn.classList.remove("disabled");
+  }
+  if(resetTransform){
+    // Volvemos al zoom clásico / normal
+    applyVideoTransform({ animateMs: 300 });
+  }
+}
+
+// Actualiza el rectángulo visible durante el arrastre
+function updateZoneZoomRect(clientX, clientY){
+  const areaRect = getActiveVisualRect();
+  const startX = Math.max(areaRect.left, Math.min(zoneZoomStartX, areaRect.right));
+  const startY = Math.max(areaRect.top,  Math.min(zoneZoomStartY, areaRect.bottom));
+  const curX   = Math.max(areaRect.left, Math.min(clientX,        areaRect.right));
+  const curY   = Math.max(areaRect.top,  Math.min(clientY,        areaRect.bottom));
+
+  const left = Math.min(startX, curX);
+  const top  = Math.min(startY, curY);
+  const width  = Math.abs(curX - startX);
+  const height = Math.abs(curY - startY);
+
+  zoneZoomRectEl.style.left = left + "px";
+  zoneZoomRectEl.style.top  = top  + "px";
+  zoneZoomRectEl.style.width  = width + "px";
+  zoneZoomRectEl.style.height = height + "px";
+}
+
 file.onchange = e=>{
   openBtn.classList.remove("active");
   const f = e.target.files[0];
   if(f){
+    // Al abrir un nuevo vídeo, salimos de cualquier zoom de zona activo
+    if(typeof deactivateZoneZoomMode === "function"){
+      deactivateZoneZoomMode(false);
+    }
     setControlsEnabled(true);
     currentFile = f;
     if(fileNameLabel){
@@ -1148,10 +1441,17 @@ function updateInfoMeta(){
   }
 }
 
+function togglePlayPause(){
+  if(vid.paused){
+    vid.play();
+  }else{
+    vid.pause();
+  }
+}
+
 playBtn.onclick=()=>{
   pulse(playBtn);
-  if(vid.paused){vid.play();}
-  else{vid.pause();}
+  togglePlayPause();
 };
 vid.addEventListener("play",()=>{
   playShape.setAttribute("d","M9 5h2.5v14H9zM12.5 5h2.5v14h-2.5z");
@@ -1161,6 +1461,44 @@ vid.addEventListener("pause",()=>{
   playShape.setAttribute("d","M8 5v14l11-7z");
   playBtn.classList.remove("active");
 });
+
+let vidTapStartX = 0;
+let vidTapStartY = 0;
+let vidTapStartTime = 0;
+
+vid.addEventListener("pointerdown",(e)=>{
+  if(e.pointerType !== "touch") return;
+  const rect = vid.getBoundingClientRect();
+  vidTapStartX = e.clientX;
+  vidTapStartY = e.clientY;
+  vidTapStartTime = e.timeStamp || Date.now();
+});
+
+vid.addEventListener("pointerup",(e)=>{
+  if(e.pointerType !== "touch") return;
+  const rect = vid.getBoundingClientRect();
+  const endTime = e.timeStamp || Date.now();
+  const dt = endTime - vidTapStartTime;
+  const dx = e.clientX - vidTapStartX;
+  const dy = e.clientY - vidTapStartY;
+  const dist2 = dx*dx + dy*dy;
+
+  // Umbrales: toque rápido, poco movimiento, dentro de la zona central de la pantalla
+  if(dt <= 300 && dist2 < 400){
+    const cx = e.clientX;
+    const cy = e.clientY;
+    const marginX = rect.width * 0.25;
+    const marginY = rect.height * 0.25;
+    const insideCenter =
+      cx >= rect.left + marginX && cx <= rect.right - marginX &&
+      cy >= rect.top  + marginY && cy <= rect.bottom - marginY;
+
+    if(insideCenter){
+      togglePlayPause();
+    }
+  }
+});
+
 
 fsBtn.onclick=()=>{
   pulse(fsBtn);
@@ -1210,9 +1548,37 @@ loopBtn.onclick=()=>{
     return;
   }
   if(vid.duration && isFinite(vid.duration)){
-    A = vid.duration * 0.33;
-    B = vid.duration * 0.66;
-    vid.currentTime = A;
+    const dur = vid.duration;
+    const tenPct  = dur * 0.10;
+    const fivePct = dur * 0.05;
+    const t = vid.currentTime || 0;
+
+    if(t <= tenPct){
+      // Si el punto de avance está dentro del primer 10%,
+      // fijamos A en el inicio y B en el 10% de la duración
+      A = 0;
+      B = tenPct;
+      vid.currentTime = A;
+    }else if(t >= dur - tenPct){
+      // Si el punto de avance está dentro del último 10%,
+      // fijamos B en el final y A en el 90% de la duración
+      B = dur;
+      A = dur - tenPct;
+      vid.currentTime = A;
+    }else{
+      // Caso general: ventana total del 10% centrada en el punto actual
+      A = t - fivePct;
+      B = t + fivePct;
+      if(A < 0){
+        A = 0;
+        B = tenPct;
+      }
+      if(B > dur){
+        B = dur;
+        A = dur - tenPct;
+      }
+      vid.currentTime = A;
+    }
   }
   loopAB = true;
   abRange.classList.add("loop-active");
@@ -1259,24 +1625,39 @@ async function performCutAB(){
     return;
   }
 
-  const capture = vid.captureStream ? vid.captureStream.bind(vid) :
-                  (vid.mozCaptureStream ? vid.mozCaptureStream.bind(vid) : null);
-  if(!capture){
+  // Para que el corte respete zoom, espejo y lupa de zona, dibujamos el vídeo
+  // en un canvas dedicado y capturamos su stream de vídeo, añadiendo la pista de audio del vídeo original.
+  const cutCanvas = document.createElement("canvas");
+  const cutCtx = cutCanvas.getContext("2d");
+  if(!cutCtx || !cutCanvas.captureStream){
     alert("Tu navegador no permite capturar el vídeo para cortar.");
     return;
   }
+  const baseW = vid.videoWidth || 1280;
+  const baseH = vid.videoHeight || 720;
+  cutCanvas.width = baseW;
+  cutCanvas.height = baseH;
 
-  let stream;
+  // Stream de vídeo desde el canvas de corte
+  const stream = cutCanvas.captureStream(25);
+
+  // Intentamos añadir la pista de audio del vídeo original al stream de corte
+  let audioSource = null;
   try{
-    stream = capture();
-  }catch(err){
-    console.error("No se pudo iniciar la captura del vídeo:", err);
-    alert("No se pudo iniciar la captura del vídeo.");
-    return;
-  }
-  if(!stream){
-    alert("No se pudo iniciar la captura del vídeo.");
-    return;
+    if(vid.captureStream){
+      audioSource = vid.captureStream();
+    }else if(vid.mozCaptureStream){
+      audioSource = vid.mozCaptureStream();
+    }
+  }catch(_){}
+
+  if(audioSource && audioSource.getAudioTracks){
+    const audioTracks = audioSource.getAudioTracks();
+    audioTracks.forEach(track=>{
+      try{
+        stream.addTrack(track);
+      }catch(_){}
+    });
   }
 
   cutBtn.classList.add("disabled");
@@ -1319,6 +1700,85 @@ async function performCutAB(){
     return;
   }
 
+  let cutting = true;
+
+  function drawCutFrame(){
+    if(!cutting) return;
+    const vw = vid.videoWidth || baseW;
+    const vh = vid.videoHeight || baseH;
+    if(!vw || !vh){
+      requestAnimationFrame(drawCutFrame);
+      return;
+    }
+    const outW = cutCanvas.width;
+    const outH = cutCanvas.height;
+
+    cutCtx.save();
+    cutCtx.fillStyle = "#000";
+    cutCtx.fillRect(0,0,outW,outH);
+
+    // Aplicar mismos ajustes de imagen que en la vista principal
+    cutCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+
+    const hasZone = zoneZoomActive && zoneZoomSelectionDone && !!zoneZoomRectNorm;
+    let cropX, cropY, cropW, cropH;
+
+    if(hasZone){
+      // Recorte basado en la selección de lupa de zona (normalizada sobre el área visible)
+      let normX = zoneZoomRectNorm.x;
+      const normY = zoneZoomRectNorm.y;
+      const normW = zoneZoomRectNorm.w;
+      const normH = zoneZoomRectNorm.h;
+      // Ajuste en espejo para que coincida con lo que ve el usuario
+      if(isMirrored){
+        normX = 1 - (zoneZoomRectNorm.x + zoneZoomRectNorm.w);
+      }
+      cropX = normX * vw;
+      cropY = normY * vh;
+      cropW = normW * vw;
+      cropH = normH * vh;
+    }else if(Math.abs(zoomLevel-1) > 0.001){
+      // Zoom clásico: recortamos la zona central equivalente
+      const factor = zoomLevel;
+      cropW = vw / factor;
+      cropH = vh / factor;
+      cropX = (vw - cropW) / 2;
+      cropY = (vh - cropH) / 2;
+    }else{
+      // Sin zoom: usamos el fotograma completo
+      cropX = 0;
+      cropY = 0;
+      cropW = vw;
+      cropH = vh;
+    }
+
+    if(cropW <= 0 || cropH <= 0){
+      cutCtx.restore();
+      requestAnimationFrame(drawCutFrame);
+      return;
+    }
+
+    const scale = Math.min(outW / cropW, outH / cropH);
+    const destW = cropW * scale;
+    const destH = cropH * scale;
+    const destX = (outW - destW) / 2;
+    const destY = (outH - destH) / 2;
+
+    if(isMirrored){
+      cutCtx.save();
+      cutCtx.translate(outW, 0);
+      cutCtx.scale(-1, 1);
+      const destXMir = outW - destX - destW;
+      cutCtx.drawImage(vid, cropX, cropY, cropW, cropH, destXMir, destY, destW, destH);
+      cutCtx.restore();
+    }else{
+      cutCtx.drawImage(vid, cropX, cropY, cropW, cropH, destX, destY, destW, destH);
+    }
+
+    cutCtx.restore();
+    requestAnimationFrame(drawCutFrame);
+  }
+
   const chunks = [];
   recorder.ondataavailable = (e)=>{
     if(e.data && e.data.size > 0){
@@ -1331,8 +1791,18 @@ async function performCutAB(){
   startCutProgress(durationMs);
 
   const stopPromise = new Promise((resolve)=>{
-    recorder.onstop = ()=>resolve();
+    const prevOnStop = recorder.onstop;
+    recorder.onstop = ()=>{
+      cutting = false;
+      if(typeof prevOnStop === "function"){
+        prevOnStop();
+      }
+      resolve();
+    };
   });
+
+  // Iniciamos el dibujo de frames hacia el canvas de corte
+  requestAnimationFrame(drawCutFrame);
 
   const seekPromise = new Promise((resolve)=>{
     const onSeeked = ()=>{
@@ -1361,6 +1831,14 @@ async function performCutAB(){
   vid.currentTime  = originalTime;
   if(!wasPaused){
     vid.play().catch(()=>{});
+  }
+
+  if(!chunks.length){
+    alert("No se pudo generar datos de vídeo para el corte A-B.");
+    cutBtn.classList.remove("disabled");
+    cutBtn.classList.remove("cut-processing");
+    resetCutProgress();
+    return;
   }
 
   const finalType = recorder.mimeType || mimeType || "video/webm";
@@ -1533,6 +2011,69 @@ function updateProgressUI(){
   updateMarks();
   updateTimeLabels();
 }
+
+function adjustMarkTime(which, deltaY){
+  if(!(vid.duration && isFinite(vid.duration))) return;
+  const step = 0.1; // segundos por notch
+  let t = (which === "A" ? A : B);
+  if(t == null) return;
+  if(deltaY < 0) t -= step;
+  else if(deltaY > 0) t += step;
+
+  if(t < 0) t = 0;
+  if(t > vid.duration) t = vid.duration;
+
+  if(which === "A"){
+    A = t;
+  }else{
+    B = t;
+  }
+  updateMarks();
+  updateProgressUI();
+}
+
+// Desplazamiento fino con rueda sobre la línea de tiempo (afecta al tiempo actual de reproducción)
+if(seek){
+  seek.addEventListener("wheel",(e)=>{
+    if(!(vid.duration && isFinite(vid.duration))) return;
+    e.preventDefault();
+    const step = 0.1;
+    let delta = 0;
+    if(e.deltaY < 0) delta = -step; // rueda hacia atrás = hacia atrás en el tiempo
+    else if(e.deltaY > 0) delta = step;
+
+    if(delta !== 0){
+      let t = vid.currentTime + delta;
+      if(t < 0) t = 0;
+      if(vid.duration && isFinite(vid.duration) && t > vid.duration) t = vid.duration;
+      if(loopAB && A!=null && B!=null){
+        const a = Math.min(A,B);
+        const b = Math.max(A,B);
+        if(t < a) t = a;
+        if(t > b) t = b;
+      }
+      vid.currentTime = t;
+      updateProgressUI();
+    }
+  },{passive:false});
+}
+
+// Desplazamiento fino de las marcas A y B con la rueda sobre sus etiquetas de tiempo
+if(markALabel){
+  markALabel.addEventListener("wheel",(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    adjustMarkTime("A", e.deltaY);
+  },{passive:false});
+}
+if(markBLabel){
+  markBLabel.addEventListener("wheel",(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    adjustMarkTime("B", e.deltaY);
+  },{passive:false});
+}
+
 
 vid.addEventListener("timeupdate",()=>{
   if(loopAB && A!=null && B!=null && B>A){
@@ -2051,33 +2592,66 @@ function drawHalfCamera(ctx, camVideo, totalW, totalH){
 function startCanvasDrawing(){
   if(!recordCanvas) return;
   canvasCtx = recordCanvas.getContext("2d");
+  if(!offscreenCanvas){
+    offscreenCanvas = document.createElement("canvas");
+    offscreenCtx = offscreenCanvas.getContext("2d");
+  }
   if(drawAnimationId) cancelAnimationFrame(drawAnimationId);
 
   const draw = ()=>{
-    if(!canvasCtx) return;
+    if(!canvasCtx || !offscreenCtx) return;
     const w = recordCanvas.width = window.innerWidth;
     const h = recordCanvas.height = window.innerHeight;
-    canvasCtx.fillStyle = "#1b0024";
-    canvasCtx.fillRect(0,0,w,h);
+
+    // Preparar lienzo intermedio con la composición completa
+    offscreenCanvas.width = w;
+    offscreenCanvas.height = h;
+    offscreenCtx.fillStyle = "#1b0024";
+    offscreenCtx.fillRect(0,0,w,h);
 
     const videoReady = vid && vid.videoWidth > 0 && vid.videoHeight > 0;
     const camReady = camPreview && camPreview.videoWidth > 0 && camPreview.videoHeight > 0;
 
-    canvasCtx.save();
+    offscreenCtx.save();
 
     if(videoReady){
       // Aplicar los mismos ajustes de imagen del vídeo también en la grabación
-      canvasCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
-      drawHalfVideo(canvasCtx, vid, w, h, "left");
+      offscreenCtx.filter = `contrast(${contrast}) saturate(${saturation}) brightness(${brightness})`;
+      drawHalfVideo(offscreenCtx, vid, w, h, "left");
     }
 
     if(videoReady && camReady){
       // Ajustes de imagen específicos para la cámara (en modo espejo)
-      canvasCtx.filter = `contrast(${camContrast}) saturate(${camSaturation}) brightness(${camBrightness})`;
-      drawHalfCamera(canvasCtx, camPreview, w, h);
+      offscreenCtx.filter = `contrast(${camContrast}) saturate(${camSaturation}) brightness(${camBrightness})`;
+      drawHalfCamera(offscreenCtx, camPreview, w, h);
     }
 
-    canvasCtx.restore();
+    offscreenCtx.restore();
+
+    // Ahora volcamos al canvas visible, aplicando lupa de zona si está activa
+    canvasCtx.fillStyle = "#1b0024";
+    canvasCtx.fillRect(0,0,w,h);
+
+    const useZoneZoom = zoneZoomActive && zoneZoomSelectionDone && !!zoneZoomRectNorm;
+    if(useZoneZoom){
+      const cropX = zoneZoomRectNorm.x * w;
+      const cropY = zoneZoomRectNorm.y * h;
+      const cropW = zoneZoomRectNorm.w * w;
+      const cropH = zoneZoomRectNorm.h * h;
+
+      if(cropW > 0 && cropH > 0){
+        const scale = Math.min(w / cropW, h / cropH);
+        const destW = cropW * scale;
+        const destH = cropH * scale;
+        const destX = (w - destW) / 2;
+        const destY = (h - destH) / 2;
+        canvasCtx.drawImage(offscreenCanvas, cropX, cropY, cropW, cropH, destX, destY, destW, destH);
+      }else{
+        canvasCtx.drawImage(offscreenCanvas, 0, 0, w, h, 0, 0, w, h);
+      }
+    }else{
+      canvasCtx.drawImage(offscreenCanvas, 0, 0, w, h, 0, 0, w, h);
+    }
 
     drawAnimationId = requestAnimationFrame(draw);
   };
@@ -2098,6 +2672,13 @@ async function enableCameraPreview(){
       camPreview.play().catch(()=>{});
     }
     document.body.classList.add("camera-mode");
+    // Al activar la cámara, desactivamos la lupa de zona y bloqueamos su botón
+    if(typeof deactivateZoneZoomMode === "function"){
+      deactivateZoneZoomMode(true);
+    }
+    if(zoneZoomBtn){
+      zoneZoomBtn.classList.add("disabled");
+    }
     startCanvasDrawing();
     cameraState = "preview";
     setCamButtonMode("preview");
@@ -2122,6 +2703,10 @@ function cleanupCamera(){
   drawAnimationId = null;
   canvasCtx = null;
   document.body.classList.remove("camera-mode");
+  // Al salir completamente de cámara, reactivamos el botón de lupa de zona
+  if(zoneZoomBtn){
+    zoneZoomBtn.classList.remove("disabled");
+  }
   if(camExitRow){
     camExitRow.classList.add("hidden");
   }
